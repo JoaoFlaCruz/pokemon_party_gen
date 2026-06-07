@@ -1,6 +1,6 @@
 [mcp_servers.pokemon_tools]
 command = "python3"
-args = ["-m", "src.tool.mcp_server"]
-cwd = "/home/joao-cruz/Dev/pokemon"
+args = ["-m", "mcp_server.src.mcp.server"]
+cwd = "/home/joao-cruz/Dev/pokemon_party_gen"
 tool_timeout_sec = 120
 default_tools_approval_mode = "prompt"

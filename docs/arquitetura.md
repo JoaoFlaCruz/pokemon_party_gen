@@ -5,31 +5,59 @@ Este projeto fornece utilitarios Python para consultar uma API compativel com a 
 ## Estrutura
 
 ```text
-src/
-    config.py
-    fetch/
-        pokemon_fetcher.py
-        pokemon_moves_fetcher.py
-        item_fetcher.py
-        type_relations_fetcher.py
-    script/
-        rank_pokemon.py
-        rank_moveset.py
-    tool/
-        banned_pokemon_tool.py
-        item_tool.py
-        pokemon_moveset_tool.py
-        pokemon_ranking_tool.py
-        type_relations_tool.py
-        mcp_server.py
-    test_scripts.py
-    test_tools.py
-    test_fetch_calls.py
+mcp_server/
+    src/
+        main.py
+        config/
+            env.py
+        mcp/
+            server.py
+            tools/
+                banned_pokemon_tool.py
+                item_tool.py
+                pokemon_moveset_tool.py
+                pokemon_ranking_tool.py
+                type_relations_tool.py
+                __init__.py
+        application/
+            use_cases/
+                rank_pokemon.py
+                rank_moveset.py
+            dtos/
+        domain/
+            entities/
+            repositories/
+            services/
+        infrastructure/
+            pokeapi/
+                pokemon_fetcher.py
+                pokemon_moves_fetcher.py
+                item_fetcher.py
+                type_relations_fetcher.py
+            database/
+                migrations/
+            repositories/
+        shared/
+            errors/
+            logger/
+            validation/
+    tests/
+        application/
+            use_cases/
+                test_rankings.py
+        infrastructure/
+            pokeapi/
+                test_fetchers.py
+        mcp/
+            tools/
+                test_tools.py
+        manual/
+            test_fetch_calls.py
 ```
 
 ## Configuracao
 
-`src/config.py` carrega variaveis de ambiente a partir de um arquivo `.env` na raiz do projeto, sem sobrescrever valores ja definidos no ambiente.
+`mcp_server/src/config/env.py` carrega variaveis de ambiente a partir de um arquivo `.env` na raiz do projeto, sem sobrescrever valores ja definidos no ambiente.
 
 Variaveis suportadas:
 
@@ -40,7 +68,7 @@ Variaveis suportadas:
 
 ## Camada de Busca
 
-`src/fetch/` concentra os clientes HTTP. Essa camada conhece a API externa e retorna dados estruturados para as regras de negocio.
+`mcp_server/src/infrastructure/pokeapi/` concentra os clientes HTTP. Essa camada conhece a API externa e retorna dados estruturados para as regras de negocio.
 
 `PokemonFetcher` busca Pokemon e seus stats. Ele tambem consulta `pokemon-species/{name}` para excluir especies lendarias do ranking e consulta `pokemon-form/{name}` para excluir formas marcadas como `is_battle_only=true`, que representam formas temporarias ou restritas a batalha e nao devem ser elencadas como membros resolvidos para PvP. Para Pokemon aceitos, o retorno inclui `is_battle_only=false` e preserva `is_mega`, `base_pokemon` e `required_item` quando esses metadados existirem e o item puder ser validado no endpoint `item/{name}`. Ele aceita filtros por:
 
@@ -58,7 +86,7 @@ Quando filtros sao combinados, o resultado e a intersecao dos Pokemon encontrado
 
 ## Camada de Regras
 
-`src/script/` contem a logica de ranking e tambem pode ser executado por CLI.
+`mcp_server/src/application/use_cases/` contem a logica de ranking e tambem pode ser executado por CLI.
 
 `rank_pokemon.py` ranqueia Pokemon nao lendarios e nao marcados como `is_battle_only`, por uma pontuacao base formada por:
 
@@ -95,7 +123,7 @@ Empates usam, nessa ordem, maior accuracy, maior power e nome do golpe. Golpes `
 
 ## Camada de Ferramenta
 
-`src/tool/` expoe funcionalidades do projeto para uso por agentes.
+`mcp_server/src/mcp/tools/` expoe funcionalidades do projeto para uso por agentes.
 
 `banned_pokemon_tool.py` define a tool `ban_pokemon`, valida `id` e `name`, cria a tabela SQLite `banned_pokemon (id, name)` quando necessario e registra o Pokemon no banco de exclusao configurado por `BANNED_POKEMON_DB_PATH`. A operacao e idempotente para registros ja existentes por mesmo `id` ou mesmo `name`.
 
@@ -112,7 +140,7 @@ Empates usam, nessa ordem, maior accuracy, maior power e nome do golpe. Golpes `
 - `data`, com o resultado estruturado;
 - `presentation`, com uma resposta textual resumida.
 
-`mcp_server.py` implementa um servidor MCP stdio minimo com suporte a:
+`mcp_server/src/mcp/server.py` implementa um servidor MCP stdio minimo com suporte a:
 
 - `initialize`;
 - `ping`;
@@ -125,29 +153,29 @@ A chamada `tools/call` despacha pelo nome da tool e suporta `ban_pokemon`, `get_
 
 Os testes unitarios principais ficam em:
 
-- `src/test_scripts.py`: testa regras de ranking com fakes, sem depender de HTTP.
-- `src/test_tools.py`: testa schema da tool, formatacao, validacao e comportamento MCP basico.
-- `src/test_fetchers.py`: testa a montagem de dados de fetchers sem depender de HTTP real.
+- `mcp_server/tests/application/use_cases/test_rankings.py`: testa regras de ranking com fakes, sem depender de HTTP.
+- `mcp_server/tests/mcp/tools/test_tools.py`: testa schema da tool, formatacao, validacao e comportamento MCP basico.
+- `mcp_server/tests/infrastructure/pokeapi/test_fetchers.py`: testa a montagem de dados de fetchers sem depender de HTTP real.
 
-`src/test_fetch_calls.py` e uma verificacao manual para ser executada quando uma PokeAPI local estiver ativa e populada.
+`mcp_server/tests/manual/test_fetch_calls.py` e uma verificacao manual para ser executada quando uma PokeAPI local estiver ativa e populada.
 
 Comando recomendado para testes unitarios:
 
 ```bash
-python3 -m unittest src.test_scripts src.test_tools src.test_fetchers
+python3 -m unittest mcp_server.tests.application.use_cases.test_rankings mcp_server.tests.mcp.tools.test_tools mcp_server.tests.infrastructure.pokeapi.test_fetchers
 ```
 
 ## Fluxo Principal
 
 ```text
 CLI ou MCP/tool (`get_type_relations`, `list_items`, `rank_pokemon` ou `rank_pokemon_moveset`)
-    -> src/script/ ou src/fetch/
+    -> mcp_server/src/application/use_cases/ ou mcp_server/src/infrastructure/pokeapi/
         -> PokeAPI REST
         -> regra de ranking/adaptacao
     -> resposta estruturada e/ou apresentacao textual
 
 CLI ou MCP/tool (`ban_pokemon`)
-    -> src/tool/banned_pokemon_tool.py
+    -> mcp_server/src/mcp/tools/banned_pokemon_tool.py
         -> SQLite `banned_pokemon`
     -> resposta estruturada e apresentacao textual
 ```
@@ -171,9 +199,9 @@ Pokemon com base em escolhas e estrategia do usuario.
 
 ## Principios de Manutencao
 
-- Mantenha chamadas HTTP restritas a `src/fetch/`.
-- Ao adicionar um fetcher, exporte-o em `src/fetch/__init__.py` e cubra a montagem de dados com testes sem HTTP real.
-- Mantenha regras de ranking em `src/script/`, testaveis com fakes.
-- Mantenha wrappers de agente/MCP em `src/tool/`.
+- Mantenha chamadas HTTP restritas a `mcp_server/src/infrastructure/pokeapi/`.
+- Ao adicionar um fetcher, exporte-o em `mcp_server/src/infrastructure/pokeapi/__init__.py` e cubra a montagem de dados com testes sem HTTP real.
+- Mantenha regras de ranking em `mcp_server/src/application/use_cases/`, testaveis com fakes.
+- Mantenha wrappers de agente/MCP em `mcp_server/src/mcp/tools/` e roteamento em `mcp_server/src/mcp/server.py`.
 - Ao adicionar uma tool, registre seu schema, executor, apresentacao, roteamento MCP e testes.
 - Ao mudar regras, contratos de resposta, argumentos, variaveis de ambiente ou fluxo de execucao, atualize esta documentacao.

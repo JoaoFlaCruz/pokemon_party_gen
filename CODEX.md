@@ -10,13 +10,14 @@ O projeto e um conjunto de utilitarios Python para consultar uma API compativel 
 
 Preserve a separacao de responsabilidades:
 
-- `src/config.py`: configuracao e leitura de `.env`.
-- `src/fetch/`: acesso HTTP e adaptacao de respostas da PokeAPI.
-- `src/script/`: regras de negocio, ranking e CLIs.
-- `src/tool/`: wrappers para ferramentas de IA e servidor MCP. Cada tool deve ter schema, executor e apresentacao textual quando aplicavel.
-- `src/test_scripts.py`: testes unitarios das regras.
-- `src/test_tools.py`: testes unitarios das ferramentas e MCP.
-- `src/test_fetch_calls.py`: chamadas manuais contra API local.
+- `mcp_server/src/config/env.py`: configuracao e leitura de `.env`.
+- `mcp_server/src/infrastructure/pokeapi/`: acesso HTTP e adaptacao de respostas da PokeAPI.
+- `mcp_server/src/application/use_cases/`: regras de negocio, ranking e CLIs.
+- `mcp_server/src/mcp/tools/`: wrappers para ferramentas de IA e servidor MCP. Cada tool deve ter schema, executor e apresentacao textual quando aplicavel.
+- `mcp_server/tests/application/use_cases/`: testes unitarios das regras.
+- `mcp_server/tests/mcp/tools/`: testes unitarios das ferramentas e MCP.
+- `mcp_server/tests/infrastructure/pokeapi/`: testes unitarios de montagem de dados dos fetchers.
+- `mcp_server/tests/manual/`: chamadas manuais contra API local.
 
 Novas implementacoes devem seguir a camada mais apropriada. Nao misture regra de ranking com HTTP nem coloque logica de API dentro de wrappers MCP.
 
@@ -45,7 +46,7 @@ Novas implementacoes devem seguir a camada mais apropriada. Nao misture regra de
 - Prefira funcoes puras para regras de ranking.
 - Injete fetchers ou use protocolos/fakes nos testes quando a regra nao precisar de HTTP real.
 - Use `ThreadPoolExecutor` apenas na camada de busca quando houver chamadas independentes.
-- Ao criar fetchers novos, exporte-os em `src/fetch/__init__.py` e mantenha a saida JSON-serializavel.
+- Ao criar fetchers novos, exporte-os em `mcp_server/src/infrastructure/pokeapi/__init__.py` e mantenha a saida JSON-serializavel.
 - Preserve respostas estruturadas com dicionarios JSON-serializaveis.
 - Valide argumentos publicos em wrappers e CLIs.
 - Ao criar uma nova tool, registre-a no MCP para `tools/list` e `tools/call`.
@@ -76,10 +77,10 @@ Se uma mudanca for pequena e nao alterar comportamento ou arquitetura, registre 
 Antes de finalizar alteracoes de codigo, rode quando possivel:
 
 ```bash
-python3 -m unittest src.test_scripts src.test_tools src.test_fetchers
+python3 -m unittest mcp_server.tests.application.use_cases.test_rankings mcp_server.tests.mcp.tools.test_tools mcp_server.tests.infrastructure.pokeapi.test_fetchers
 ```
 
-Para fetchers, `src/test_fetch_calls.py` depende de uma PokeAPI local ativa e populada. Nao trate esse arquivo como teste unitario automatico.
+Para fetchers, `mcp_server/tests/manual/test_fetch_calls.py` depende de uma PokeAPI local ativa e populada. Nao trate esse arquivo como teste unitario automatico.
 
 ## Checklist Para Mudancas
 

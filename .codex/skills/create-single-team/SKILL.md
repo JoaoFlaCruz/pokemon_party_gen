@@ -9,6 +9,10 @@ description: Use when Codex needs to create a list of N Pokemon single battle te
 
 Criar uma lista de `n` times para single battle, cada um com exatamente 6 Pokemon, mantendo dois trios de 3 Pokemon com aces e estrategias distintas, coesao estrategica, protecao de tipagem, habilidades compativeis e variacao suficiente para analise entre alternativas.
 
+## Caminhos do Projeto
+
+As tools MCP e regras usadas por este fluxo vivem em `mcp_server/src/`. Os testes automatizados correspondentes vivem em `mcp_server/tests/`. Ao orientar manutencao ou validar comandos, use os caminhos encapsulados, por exemplo `mcp_server/src/mcp/tools/` para tools e `mcp_server/tests/mcp/tools/` para testes de tools.
+
 ## Entrada Obrigatoria
 
 Antes de montar os times, pedir ao usuario:

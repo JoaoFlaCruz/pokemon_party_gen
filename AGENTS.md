@@ -5,14 +5,14 @@
 This workspace contains Python utilities for querying a PokeAPI-compatible API,
 ranking Pokemon and moves, and exposing the functionality through MCP tools.
 
-- `src/config.py`: environment configuration.
-- `src/fetch/`: HTTP access and adaptation of PokeAPI responses.
-- `src/script/`: business rules, ranking logic, and CLIs.
-- `src/tool/`: AI tool wrappers and the MCP stdio server.
-- `src/test_scripts.py`: unit tests for ranking rules.
-- `src/test_tools.py`: unit tests for tool wrappers and MCP behavior.
-- `src/test_fetchers.py`: unit tests for fetcher data assembly without real HTTP.
-- `src/test_fetch_calls.py`: manual checks against a running local PokeAPI.
+- `mcp_server/src/config/env.py`: environment configuration.
+- `mcp_server/src/infrastructure/pokeapi/`: HTTP access and adaptation of PokeAPI responses.
+- `mcp_server/src/application/use_cases/`: business rules, ranking logic, and CLIs.
+- `mcp_server/src/mcp/tools/`: AI tool wrappers and the MCP stdio server.
+- `mcp_server/tests/application/use_cases/`: unit tests for ranking rules.
+- `mcp_server/tests/mcp/tools/`: unit tests for tool wrappers and MCP behavior.
+- `mcp_server/tests/infrastructure/pokeapi/`: unit tests for fetcher data assembly without real HTTP.
+- `mcp_server/tests/manual/`: manual checks against a running local PokeAPI.
 - `docs/arquitetura.md`: architecture, contracts, flow, tools, and test notes.
 - `docs/padrao-agentico-times.md`: rules for assembling 6-Pokemon teams.
 - `pokeapi/`: local PokeAPI source used as a compatible API reference/runtime.
@@ -21,8 +21,8 @@ ranking Pokemon and moves, and exposing the functionality through MCP tools.
 
 There is no separate build step for the Python utilities.
 
-- `python3 -m unittest src.test_scripts src.test_tools src.test_fetchers`: run unit tests.
-- `python3 -m unittest src.test_fetch_calls`: run manual fetch checks only when a local PokeAPI is active and populated.
+- `python3 -m unittest mcp_server.tests.application.use_cases.test_rankings mcp_server.tests.mcp.tools.test_tools mcp_server.tests.infrastructure.pokeapi.test_fetchers`: run unit tests.
+- `python3 -m unittest mcp_server.tests.manual.test_fetch_calls`: run manual fetch checks only when a local PokeAPI is active and populated.
 - `rg "identifier" src docs`: search project code and documentation.
 - `sed -n '1,200p' docs/arquitetura.md`: inspect architecture documentation.
 
@@ -34,9 +34,9 @@ through `.env` or the environment variables documented in `docs/arquitetura.md`.
 Use straightforward Python and preserve the existing simple module style. Keep
 responsibilities separated:
 
-- Keep HTTP calls and API response adaptation in `src/fetch/`.
-- Keep ranking and business rules in `src/script/`.
-- Keep MCP schemas, validation, presentation text, and dispatch in `src/tool/`.
+- Keep HTTP calls and API response adaptation in `mcp_server/src/infrastructure/pokeapi/`.
+- Keep ranking and business rules in `mcp_server/src/application/use_cases/`.
+- Keep MCP schemas, validation, presentation text, and dispatch in `mcp_server/src/mcp/tools/`.
 
 Return JSON-serializable dictionaries from public functions and tools. Validate
 public arguments in wrappers and CLIs. Prefer pure functions for ranking rules and
@@ -47,10 +47,10 @@ use fakes or injected fetchers in tests when HTTP is not required.
 Before finalizing code changes, run:
 
 ```bash
-python3 -m unittest src.test_scripts src.test_tools src.test_fetchers
+python3 -m unittest mcp_server.tests.application.use_cases.test_rankings mcp_server.tests.mcp.tools.test_tools mcp_server.tests.infrastructure.pokeapi.test_fetchers
 ```
 
-Do not treat `src/test_fetch_calls.py` as an automatic unit test; it depends on a
+Do not treat `mcp_server/tests/manual/test_fetch_calls.py` as an automatic unit test; it depends on a
 local PokeAPI server and populated data. For fetcher changes, cover data assembly
 with tests that do not require real HTTP.
 
@@ -89,5 +89,5 @@ follow `docs/padrao-agentico-times.md`, preserve user-selected Pokemon as fixed
 members, and clearly distinguish user choices from AI-selected additions.
 
 When adding a tool, register its schema, executor, MCP dispatch, presentation, and
-tests. When adding a fetcher, export it from `src/fetch/__init__.py`. Keep changes
+tests. When adding a fetcher, export it from `mcp_server/src/infrastructure/pokeapi/__init__.py`. Keep changes
 focused and avoid unrelated formatting churn.
