@@ -40,7 +40,7 @@ def get_int(name: str, default: int) -> int:
 
 load_env()
 
-POKEAPI_BASE_URL = os.getenv("POKEAPI_BASE_URL", "http://localhost/api/v2/")
+POKEAPI_BASE_URL = os.getenv("POKEAPI_BASE_URL", "http://127.0.0.1:8000/api/v2/")
 POKEAPI_TIMEOUT = get_float("POKEAPI_TIMEOUT", 30.0)
 POKEAPI_MAX_WORKERS = get_int("POKEAPI_MAX_WORKERS", 12)
 BANNED_POKEMON_DB_PATH = os.getenv(

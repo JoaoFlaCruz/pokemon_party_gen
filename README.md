@@ -26,6 +26,45 @@ O ambiente Docker da raiz sobe:
 - Docker com Docker Compose V2.
 - Use `docker compose`, com espaco.
 - Evite `docker-compose` V1, pois ele pode falhar com `KeyError: ContainerConfig`.
+- Git com acesso ao submodulo `pokeapi`.
+
+## Clonar o Projeto
+
+Clone o repositorio carregando os submodulos:
+
+```bash
+git clone --recurse-submodules https://github.com/JoaoFlaCruz/pokemon_party_gen.git
+cd pokemon_party_gen
+```
+
+Se o repositorio ja foi clonado sem submodulos, inicialize depois:
+
+```bash
+git submodule update --init --recursive
+```
+
+O submodulo principal e:
+
+```text
+pokeapi -> git@github.com:PokeAPI/pokeapi.git
+```
+
+Esse submodulo precisa estar presente porque o compose da raiz inclui `pokeapi/docker-compose.yml`
+e o `pokeapi-setup` usa os dados do subprojeto para popular o banco local. Confira se os arquivos
+da PokeAPI existem antes de subir:
+
+```bash
+test -f pokeapi/manage.py
+test -d pokeapi/data/v2/csv
+```
+
+Se voce nao tiver chave SSH configurada para GitHub, ajuste a URL do submodulo para HTTPS antes
+de inicializar:
+
+```bash
+git config submodule.pokeapi.url https://github.com/PokeAPI/pokeapi.git
+git submodule update --init --recursive
+```
 
 ## Subir do Zero
 
@@ -58,7 +97,8 @@ docker compose run --rm codex
 Tambem e possivel subir tudo junto:
 
 ```bash
-docker compose up
+docker compose up -d
+docker compose run --rm codex
 ```
 
 Nesse modo, o servico `codex` abre o Codex CLI no terminal. No primeiro uso, siga o fluxo de login

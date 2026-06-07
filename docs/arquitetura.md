@@ -61,7 +61,7 @@ mcp_server/
 
 Variaveis suportadas:
 
-- `POKEAPI_BASE_URL`: URL base da API. Valor padrao: `http://localhost/api/v2/`.
+- `POKEAPI_BASE_URL`: URL base da API. Valor padrao: `http://127.0.0.1:8000/api/v2/`.
 - `POKEAPI_TIMEOUT`: timeout das chamadas HTTP. Valor padrao: `30.0`.
 - `POKEAPI_MAX_WORKERS`: quantidade padrao de workers paralelos. Valor padrao: `12`.
 - `BANNED_POKEMON_DB_PATH`: caminho do banco SQLite com Pokemon proibidos para a tool `rank_pokemon`. Valor padrao: `banned_pokemon.sqlite3` na raiz do projeto.
