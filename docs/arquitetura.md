@@ -65,6 +65,51 @@ Variaveis suportadas:
 - `POKEAPI_TIMEOUT`: timeout das chamadas HTTP. Valor padrao: `30.0`.
 - `POKEAPI_MAX_WORKERS`: quantidade padrao de workers paralelos. Valor padrao: `12`.
 - `BANNED_POKEMON_DB_PATH`: caminho do banco SQLite com Pokemon proibidos para a tool `rank_pokemon`. Valor padrao: `banned_pokemon.sqlite3` na raiz do projeto.
+- `POKEAPI_HTTP_PORT`: porta HTTP do host usada pelo `docker-compose.yml` da raiz para expor a PokeAPI via Nginx. Valor padrao: `8000`.
+- `HASURA_HTTP_PORT`: porta HTTP do host usada pelo `docker-compose.yml` da raiz para expor o console Hasura. Valor padrao: `8081`.
+
+## Ambiente Docker
+
+A raiz do projeto possui um `Dockerfile` para um terminal interativo com Codex CLI e um
+`docker-compose.yml` que inclui o compose interno de `pokeapi/` em vez de duplicar seus servicos.
+O include usa `pokeapi/docker-compose.yml` e `docker/pokeapi-compose.override.yml`; esse override
+mantem os servicos da PokeAPI no compose proprio do subprojeto, mas ajusta as portas publicadas
+e usa build local da imagem `app`. A raiz adiciona apenas o servico one-shot `pokeapi-setup`,
+que usa a mesma imagem da PokeAPI, monta `pokeapi/` em `/code` para acessar os CSVs e executa
+`migrate` mais `build_all()` no ambiente interno da PokeAPI quando o banco ainda nao possui dados.
+
+O container `codex` monta o projeto em `/workspace`, copia `docker/codex/config.toml` como
+configuracao inicial do Codex no volume gravavel `codex_home` e registra o servidor MCP
+`pokemon_tools` apontando para `python3 -m mcp_server.src.mcp.server`. O comando padrao do servico
+`codex` e `codex`, abrindo o chatbot no terminal. O volume `codex_home` preserva a autenticacao
+feita por link/token e a confianca do workspace entre execucoes. O servico usa `network_mode: host`
+para liberar callbacks em `localhost` durante o login.
+
+Como o `codex` usa a rede do host, o MCP acessa a PokeAPI pela porta publicada no host:
+
+```text
+POKEAPI_BASE_URL=http://127.0.0.1:8000/api/v2/
+```
+
+Para subir o ambiente completo, incluindo migracao/carga de dados pelo fluxo interno da PokeAPI:
+
+```bash
+docker compose up
+```
+
+O `app` e o `codex` declaram dependencia de `pokeapi-setup`, entao o compose executa a
+inicializacao de dados antes de subir a API e abrir o chatbot. Para abrir apenas o terminal Codex
+em uma sessao interativa depois que os servicos estiverem prontos, use:
+
+```bash
+docker compose run --rm codex
+```
+
+Depois disso, a PokeAPI fica disponivel no host em `http://localhost:8000/api/v2/` por padrao.
+Use sempre Docker Compose V2 (`docker compose`, com espaco). O comando `docker compose run --rm codex`
+abre o terminal do chatbot Codex; no primeiro uso, siga o fluxo de login por link/token exibido
+pelo CLI. Evite `docker-compose` v1, que pode falhar com `KeyError: ContainerConfig` em Docker
+atual.
 
 ## Camada de Busca
 

@@ -1,0 +1,33 @@
+include:
+  - path:
+      - ./pokeapi/docker-compose.yml
+      - ./docker/pokeapi-compose.override.yml
+    project_directory: ./pokeapi
+
+services:
+  codex:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pokemon-party-gen-codex:local
+    stdin_open: true
+    tty: true
+    working_dir: /workspace
+    network_mode: host
+    environment:
+      CODEX_HOME: /codex-home
+      POKEAPI_BASE_URL: http://127.0.0.1:${POKEAPI_HTTP_PORT:-8000}/api/v2/
+      POKEAPI_TIMEOUT: ${POKEAPI_TIMEOUT:-30}
+      POKEAPI_MAX_WORKERS: ${POKEAPI_MAX_WORKERS:-4}
+      BANNED_POKEMON_DB_PATH: /workspace/banned_pokemon.sqlite3
+    volumes:
+      - .:/workspace
+      - codex_home:/codex-home
+    depends_on:
+      web:
+        condition: service_started
+      pokeapi-setup:
+        condition: service_completed_successfully
+    command: codex
+volumes:
+  codex_home:

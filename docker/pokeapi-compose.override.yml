@@ -1,0 +1,45 @@
+services:
+  app:
+    build:
+      context: ../pokeapi
+      dockerfile: ./Resources/docker/app/Dockerfile
+    image: pokemon_party_gen-pokeapi-app:local
+    depends_on: !override
+      pokeapi-setup:
+        condition: service_completed_successfully
+
+  web:
+    ports: !override
+      - "${POKEAPI_HTTP_PORT:-8000}:80"
+
+  graphql-engine:
+    ports: !override
+      - "${HASURA_HTTP_PORT:-8081}:8080"
+
+  pokeapi-setup:
+    build:
+      context: ../pokeapi
+      dockerfile: ./Resources/docker/app/Dockerfile
+    image: pokemon_party_gen-pokeapi-app:local
+    user: ${RUN_AS:-pokeapi}
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pokemon}
+      POSTGRES_USER: ${POSTGRES_USER:-ash}
+      POSTGRES_DB: ${POSTGRES_DB:-pokeapi}
+    volumes:
+      - ../pokeapi:/code
+      - ../docker/pokeapi/setup.sh:/usr/local/bin/pokeapi-setup:ro
+    restart: "no"
+    command: sh /usr/local/bin/pokeapi-setup
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_started
+
+  db:
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-ash} -d $${POSTGRES_DB:-pokeapi}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

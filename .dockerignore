@@ -1,0 +1,9 @@
+.git
+**/__pycache__
+*.pyc
+.env
+banned_pokemon.sqlite3
+pokeapi/data
+pokeapi/.git
+pokeapi/db.sqlite3
+pokeapi/node_modules
