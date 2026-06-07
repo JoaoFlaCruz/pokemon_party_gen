@@ -1,0 +1,4 @@
+interface:
+  display_name: "create_single_team"
+  short_description: "Cria listas de times Pokemon single battle em torno de um ace."
+  default_prompt: "Use create_single_team para montar uma lista de times Pokemon single battle com ace, estrategia base e variacao entre times."
