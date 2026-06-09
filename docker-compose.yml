@@ -28,6 +28,6 @@ services:
         condition: service_started
       pokeapi-setup:
         condition: service_completed_successfully
-    command: codex
+    command: ["codex", "--dangerously-bypass-approvals-and-sandbox"]
 volumes:
   codex_home:

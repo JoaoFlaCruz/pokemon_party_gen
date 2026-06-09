@@ -78,12 +78,19 @@ e usa build local da imagem `app`. A raiz adiciona apenas o servico one-shot `po
 que usa a mesma imagem da PokeAPI, monta `pokeapi/` em `/code` para acessar os CSVs e executa
 `migrate` mais `build_all()` no ambiente interno da PokeAPI quando o banco ainda nao possui dados.
 
-O container `codex` monta o projeto em `/workspace`, copia `docker/codex/config.toml` como
-configuracao inicial do Codex no volume gravavel `codex_home` e registra o servidor MCP
-`pokemon_tools` apontando para `python3 -m mcp_server.src.mcp.server`. O comando padrao do servico
-`codex` e `codex`, abrindo o chatbot no terminal. O volume `codex_home` preserva a autenticacao
-feita por link/token e a confianca do workspace entre execucoes. O servico usa `network_mode: host`
-para liberar callbacks em `localhost` durante o login.
+O container `codex` monta o projeto em `/workspace`, copia `docker/codex/config.toml` para
+`CODEX_HOME/config.toml` a cada inicializacao no volume gravavel `codex_home` e registra o servidor
+MCP `pokemon_tools` apontando para `python3 -m mcp_server.src.mcp.server`. O comando do
+servico `codex` e `codex --dangerously-bypass-approvals-and-sandbox`, abrindo o chatbot
+no terminal. O volume `codex_home` preserva a autenticacao feita por link/token e a confianca
+do workspace entre execucoes, mas a configuracao
+Codex e reaplicada a partir de `docker/codex/config.toml` para manter o comportamento esperado do
+container. O servico usa `network_mode: host` para liberar callbacks em `localhost` durante o login.
+
+Dentro do container, o servico inicia o CLI com `--dangerously-bypass-approvals-and-sandbox`;
+o Codex tambem carrega `approval_policy = "never"`, `sandbox_mode = "danger-full-access"`
+e o MCP `pokemon_tools` usa `default_tools_approval_mode = "approve"`. Essa politica remove prompts de aprovacao para comandos, alteracoes de arquivos e uso das tools
+dentro do ambiente Docker, sem modificar a configuracao Codex do host fora do volume `codex_home`.
 
 Como o `codex` usa a rede do host, o MCP acessa a PokeAPI pela porta publicada no host:
 

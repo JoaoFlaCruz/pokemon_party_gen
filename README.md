@@ -8,7 +8,9 @@ O ambiente Docker da raiz sobe:
 - PokeAPI local, usando o compose interno em `pokeapi/`;
 - Postgres, Redis, Nginx e Hasura da PokeAPI;
 - um terminal interativo com Codex CLI;
-- o MCP `pokemon_tools`, apontando para `mcp_server/src/mcp/server.py`.
+- o MCP `pokemon_tools`, apontando para `mcp_server/src/mcp/server.py`;
+- uma configuracao Codex liberada dentro do container, sem prompts de aprovacao
+  para sandbox ou tools MCP.
 
 ## Estrutura Basica
 
@@ -139,6 +141,13 @@ O servidor MCP configurado e:
 ```text
 python3 -m mcp_server.src.mcp.server
 ```
+
+O `docker/codex/config.toml` e copiado para `CODEX_HOME/config.toml` a cada inicializacao do
+container `codex`. O servico inicia o CLI com `--dangerously-bypass-approvals-and-sandbox`;
+dentro desse container, o Codex tambem carrega `approval_policy = "never"`,
+`sandbox_mode = "danger-full-access"` e as tools do MCP `pokemon_tools` usam
+`default_tools_approval_mode = "approve"`. Essa liberacao vale para o ambiente isolado do Docker;
+nao altera a configuracao Codex do host fora do volume `codex_home`.
 
 As ferramentas expostas incluem:
 

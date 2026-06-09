@@ -1,6 +1,9 @@
+approval_policy = "never"
+sandbox_mode = "danger-full-access"
+
 [mcp_servers.pokemon_tools]
 command = "python3"
 args = ["-m", "mcp_server.src.mcp.server"]
 cwd = "/workspace"
 tool_timeout_sec = 120
-default_tools_approval_mode = "prompt"
+default_tools_approval_mode = "approve"
