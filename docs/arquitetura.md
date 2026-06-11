@@ -17,10 +17,12 @@ mcp_server/
                 item_tool.py
                 pokemon_moveset_tool.py
                 pokemon_ranking_tool.py
+                team_builder_tool.py
                 type_relations_tool.py
                 __init__.py
         application/
             use_cases/
+                build_team.py
                 rank_pokemon.py
                 rank_moveset.py
             dtos/
@@ -138,7 +140,9 @@ Quando filtros sao combinados, o resultado e a intersecao dos Pokemon encontrado
 
 ## Camada de Regras
 
-`mcp_server/src/application/use_cases/` contem a logica de ranking e tambem pode ser executado por CLI.
+`mcp_server/src/application/use_cases/` contem a logica de ranking, montagem deterministica de times e tambem pode ser executado por CLI quando o modulo possuir entrada propria.
+
+`build_team.py` monta uma resposta estruturada para times de 6 Pokemon a partir de escolhas do usuario, estrategias opcionais e candidatos ranqueados. Ele normaliza entradas, remove repeticoes preservando a primeira ocorrencia, aplica limite de 6 escolhas do usuario, valida Pokemon por uma fonte PokeAPI-compativel injetavel e completa vagas com candidatos ranqueados de forma deterministica. O retorno inclui `team_size`, `is_complete`, `user_requested`, `team_structure`, `team`, `analysis` e `pending`. Pokemon do usuario recebem `source=user` e `locked=true`; Pokemon escolhidos pela ferramenta recebem `source=ai`, `locked=false`, `reason`, `role` e `replaces_gap`. Quando dados nao puderem ser validados, a incerteza fica em `pending` em vez de inventar stats, tipos, golpes, habilidades ou itens.
 
 `rank_pokemon.py` ranqueia Pokemon nao lendarios e nao marcados como `is_battle_only`, por uma pontuacao base formada por:
 
@@ -185,6 +189,8 @@ Empates usam, nessa ordem, maior accuracy, maior power e nome do golpe. Golpes `
 
 `pokemon_ranking_tool.py` define a tool `rank_pokemon`, valida filtros opcionais de tipo, `offense_stat`, `priority_stat`, `speed_mode` e `head_size`, chama `rank_pokemon.py` e retorna ranking estruturado com apresentacao textual. Os resultados ja chegam filtrados para remover especies lendarias e formas `is_battle_only`. Depois do ranking, a tool tambem consulta o SQLite configurado em `BANNED_POKEMON_DB_PATH` e remove da listagem qualquer Pokemon cadastrado na tabela `banned_pokemon`, com colunas `id` e `name`. Se o arquivo do banco nao existir, nenhum filtro adicional e aplicado.
 
+`team_builder_tool.py` define a tool `build_pokemon_team`, valida `pokemon`, `aces`, `primary_strategy` e `complementary_strategy`, chama `build_team.py` e retorna uma proposta estruturada de time. A tool preserva Pokemon informados pelo usuario como membros fixos quando validados, completa vagas com candidatos ranqueados, divide o time em trios `primary` e `complementary`, marca dois aces quando possivel e declara pendencias para dados ausentes, conflitos ou candidatos insuficientes.
+
 `pokemon_moveset_tool.py` define a tool `rank_pokemon_moveset`, valida argumentos, chama a regra de ranking e retorna:
 
 - `tool_name`;
@@ -199,12 +205,13 @@ Empates usam, nessa ordem, maior accuracy, maior power e nome do golpe. Golpes `
 - `tools/list`;
 - `tools/call`.
 
-A chamada `tools/call` despacha pelo nome da tool e suporta `ban_pokemon`, `get_type_relations`, `list_items`, `rank_pokemon` e `rank_pokemon_moveset`, retornando conteudo textual e `structuredContent`.
+A chamada `tools/call` despacha pelo nome da tool e suporta `ban_pokemon`, `build_pokemon_team`, `get_type_relations`, `list_items`, `rank_pokemon` e `rank_pokemon_moveset`, retornando conteudo textual e `structuredContent`.
 
 ## Testes
 
 Os testes unitarios principais ficam em:
 
+- `mcp_server/tests/application/use_cases/test_build_team.py`: testa a montagem deterministica de times com fakes, sem depender de HTTP.
 - `mcp_server/tests/application/use_cases/test_rankings.py`: testa regras de ranking com fakes, sem depender de HTTP.
 - `mcp_server/tests/mcp/tools/test_tools.py`: testa schema da tool, formatacao, validacao e comportamento MCP basico.
 - `mcp_server/tests/infrastructure/pokeapi/test_fetchers.py`: testa a montagem de dados de fetchers sem depender de HTTP real.
@@ -214,13 +221,13 @@ Os testes unitarios principais ficam em:
 Comando recomendado para testes unitarios:
 
 ```bash
-python3 -m unittest mcp_server.tests.application.use_cases.test_rankings mcp_server.tests.mcp.tools.test_tools mcp_server.tests.infrastructure.pokeapi.test_fetchers
+python3 -m unittest mcp_server.tests.application.use_cases.test_build_team mcp_server.tests.application.use_cases.test_rankings mcp_server.tests.mcp.tools.test_tools mcp_server.tests.infrastructure.pokeapi.test_fetchers
 ```
 
 ## Fluxo Principal
 
 ```text
-CLI ou MCP/tool (`get_type_relations`, `list_items`, `rank_pokemon` ou `rank_pokemon_moveset`)
+CLI ou MCP/tool (`build_pokemon_team`, `get_type_relations`, `list_items`, `rank_pokemon` ou `rank_pokemon_moveset`)
     -> mcp_server/src/application/use_cases/ ou mcp_server/src/infrastructure/pokeapi/
         -> PokeAPI REST
         -> regra de ranking/adaptacao
@@ -247,7 +254,10 @@ CLI ou MCP/tool (`ban_pokemon`)
 
 Esse fluxo segue `docs/fluxograma_agentico.pdf` e deve ser usado junto com
 `docs/padrao-agentico-times.md` quando uma AI precisar completar um time de 6
-Pokemon com base em escolhas e estrategia do usuario.
+Pokemon com base em escolhas e estrategia do usuario. A tool `build_pokemon_team`
+e a implementacao deterministica desse contrato para MCP: ela nao substitui a
+analise humana ou agentica final, mas fornece uma base validada, estruturada e
+rastreavel para os agentes.
 
 ## Principios de Manutencao
 

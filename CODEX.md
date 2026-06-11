@@ -39,6 +39,12 @@ Novas implementacoes devem seguir a camada mais apropriada. Nao misture regra de
 - Para pedidos de montagem de time de 6 Pokemon a partir de N Pokemon desejados pelo usuario, siga `docs/padrao-agentico-times.md`.
 - Preserve as escolhas do usuario como membros fixos do time e diferencie claramente Pokemon escolhidos pelo usuario de Pokemon selecionados pela AI.
 - Ao completar vagas restantes, use criterios explicitos de cobertura, papeis e lacunas; nao invente dados de Pokemon.
+- Use naturalmente as skills OpenSpec locais em `.codex/skills/` quando a intencao do usuario corresponder a um fluxo OpenSpec, mesmo que a skill nao seja citada nominalmente.
+- Use `openspec-explore` para exploracao, descoberta de requisitos, investigacao de problemas ou comparacao de abordagens antes de uma mudanca.
+- Use `openspec-propose` quando o usuario pedir para definir, especificar, planejar ou propor uma nova mudanca.
+- Use `openspec-apply-change` quando o usuario pedir para implementar, continuar ou executar tarefas de uma mudanca OpenSpec existente.
+- Use `openspec-sync-specs` quando o usuario pedir para sincronizar delta specs com as specs principais sem arquivar.
+- Use `openspec-archive-change` quando o usuario pedir para finalizar, concluir ou arquivar uma mudanca OpenSpec implementada.
 
 ## Regras de Implementacao
 

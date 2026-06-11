@@ -25,10 +25,42 @@ O ambiente Docker da raiz sobe:
 
 ## Requisitos
 
-- Docker com Docker Compose V2.
-- Use `docker compose`, com espaco.
-- Evite `docker-compose` V1, pois ele pode falhar com `KeyError: ContainerConfig`.
 - Git com acesso ao submodulo `pokeapi`.
+- Docker Engine.
+- Docker Compose V2, executado como `docker compose`.
+- `curl`, para validar a PokeAPI local depois da carga.
+
+Evite `docker-compose` V1, pois ele pode falhar com `KeyError: ContainerConfig`.
+O projeto nao precisa de Node.js ou npm instalados no host para rodar pelo Docker; o container
+`codex` ja instala o Codex CLI necessario.
+
+Em Debian/Ubuntu, instale as ferramentas de host assim:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y git curl ca-certificates docker.io docker-compose-plugin
+```
+
+Se o usuario atual ainda nao puder acessar o Docker, adicione-o ao grupo `docker` e abra uma nova
+sessao de terminal:
+
+```bash
+sudo usermod -aG docker "$USER"
+```
+
+Valide que o Compose instalado e o V2:
+
+```bash
+docker compose version
+```
+
+Opcionalmente, instale o OpenSpec CLI no host apenas se for trabalhar nos fluxos de especificacao
+fora do container:
+
+```bash
+sudo apt-get install -y npm
+npm install -g @fission-ai/openspec@latest
+```
 
 ## Clonar o Projeto
 

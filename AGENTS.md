@@ -88,6 +88,20 @@ when real Pokemon data is needed. For requests to assemble a team of 6 Pokemon,
 follow `docs/padrao-agentico-times.md`, preserve user-selected Pokemon as fixed
 members, and clearly distinguish user choices from AI-selected additions.
 
+Use the local OpenSpec skills in `.codex/skills/` naturally when the user's
+intent matches an OpenSpec workflow, even if the user does not name the skill:
+
+- Use `openspec-explore` for exploratory discussion, requirement discovery,
+  problem investigation, or comparing possible approaches before a change.
+- Use `openspec-propose` when the user asks to define, specify, plan, or propose
+  a new change.
+- Use `openspec-apply-change` when the user asks to implement, continue, or work
+  through an existing OpenSpec change.
+- Use `openspec-sync-specs` when the user asks to sync delta specs into the main
+  specs without archiving.
+- Use `openspec-archive-change` when the user asks to finalize, complete, or
+  archive an implemented OpenSpec change.
+
 When adding a tool, register its schema, executor, MCP dispatch, presentation, and
 tests. When adding a fetcher, export it from `mcp_server/src/infrastructure/pokeapi/__init__.py`. Keep changes
 focused and avoid unrelated formatting churn.

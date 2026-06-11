@@ -8,16 +8,19 @@ import unittest
 from pathlib import Path
 from typing import Any
 
+import mcp_server.src.mcp.server as pokemon_mcp_server
 from mcp_server.src.mcp.tools import (
     BAN_POKEMON_TOOL,
     ITEM_TOOL,
     POKEMON_MOVESET_TOOL,
     POKEMON_RANKING_TOOL,
+    TEAM_BUILDER_TOOL,
     TYPE_RELATIONS_TOOL,
     execute_ban_pokemon_tool,
     execute_item_tool,
     execute_pokemon_moveset_tool,
     execute_pokemon_ranking_tool,
+    execute_team_builder_tool,
     execute_type_relations_tool,
 )
 from mcp_server.src.mcp.server import handle_message, tool_definition, tool_definitions
@@ -457,6 +460,94 @@ class TypeRelationsToolTests(unittest.TestCase):
         }
 
 
+class TeamBuilderToolTests(unittest.TestCase):
+    def test_tool_schema_accepts_team_arguments(self) -> None:
+        function = TEAM_BUILDER_TOOL["function"]
+
+        self.assertEqual(function["name"], "build_pokemon_team")
+        self.assertNotIn("required", function["parameters"])
+        self.assertIn("pokemon", function["parameters"]["properties"])
+        self.assertIn("aces", function["parameters"]["properties"])
+        self.assertIn("primary_strategy", function["parameters"]["properties"])
+        self.assertIn("complementary_strategy", function["parameters"]["properties"])
+
+    def test_execute_tool_returns_structured_data_and_presentation(self) -> None:
+        result = execute_team_builder_tool(
+            {
+                "pokemon": [" Pikachu "],
+                "aces": ["pikachu"],
+                "primary_strategy": "speed",
+            },
+            builder=self.fake_builder,
+        )
+
+        self.assertEqual(result["tool_name"], "build_pokemon_team")
+        self.assertEqual(result["input"]["pokemon"], ["pikachu"])
+        self.assertEqual(result["input"]["aces"], ["pikachu"])
+        self.assertEqual(result["data"]["team"][0]["name"], "pikachu")
+        self.assertIn("Time Pokemon: completo", result["presentation"])
+        self.assertIn("source=user", result["presentation"])
+
+    def test_execute_tool_validates_arguments(self) -> None:
+        with self.assertRaises(ValueError):
+            execute_team_builder_tool({"pokemon": "pikachu"}, builder=self.fake_builder)
+
+        with self.assertRaises(ValueError):
+            execute_team_builder_tool({"pokemon": [""]}, builder=self.fake_builder)
+
+        with self.assertRaises(ValueError):
+            execute_team_builder_tool({"aces": ["a", "b", "c"]}, builder=self.fake_builder)
+
+        with self.assertRaises(ValueError):
+            execute_team_builder_tool({"primary_strategy": 1}, builder=self.fake_builder)
+
+    @staticmethod
+    def fake_builder(
+        pokemon: list[str | int] | None,
+        primary_strategy: str | None,
+        complementary_strategy: str | None,
+        aces: list[str | int] | None,
+    ) -> dict[str, Any]:
+        return {
+            "team_size": 6,
+            "is_complete": True,
+            "user_requested": pokemon or [],
+            "team_structure": {
+                "primary_trio_strategy": primary_strategy or "balanced",
+                "complementary_trio_strategy": complementary_strategy or "coverage",
+            },
+            "team": [
+                {
+                    "name": "pikachu",
+                    "source": "user",
+                    "locked": True,
+                    "role": "ace",
+                    "trio": "primary",
+                    "reason": "Escolha informada pelo usuario.",
+                    "notes": [],
+                },
+                {
+                    "name": "charizard",
+                    "source": "ai",
+                    "locked": False,
+                    "role": "physical-attacker",
+                    "trio": "primary",
+                    "reason": "Selecionado entre candidatos validados pelo ranking.",
+                    "replaces_gap": "suporte do trio principal",
+                    "notes": [],
+                },
+            ],
+            "analysis": {
+                "strengths": [],
+                "trio_differences": [],
+                "trio_complementarity": [],
+                "risks": [],
+                "selection_criteria": [],
+            },
+            "pending": [],
+        }
+
+
 class PokemonMcpServerTests(unittest.TestCase):
     def test_initialize_and_tools_list(self) -> None:
         initialize = handle_message(
@@ -475,7 +566,37 @@ class PokemonMcpServerTests(unittest.TestCase):
         self.assertIn(tool_definition(ITEM_TOOL), tools["result"]["tools"])
         self.assertIn(tool_definition(POKEMON_MOVESET_TOOL), tools["result"]["tools"])
         self.assertIn(tool_definition(POKEMON_RANKING_TOOL), tools["result"]["tools"])
+        self.assertIn(tool_definition(TEAM_BUILDER_TOOL), tools["result"]["tools"])
         self.assertIn(tool_definition(TYPE_RELATIONS_TOOL), tools["result"]["tools"])
+
+
+    def test_team_builder_tool_dispatch_returns_structured_content(self) -> None:
+        original = pokemon_mcp_server.TOOLS["build_pokemon_team"]
+
+        def fake_executor(arguments: dict[str, Any]) -> dict[str, Any]:
+            return {
+                "tool_name": "build_pokemon_team",
+                "input": arguments,
+                "data": {"team_size": 6, "team": []},
+                "presentation": "fake team",
+            }
+
+        try:
+            pokemon_mcp_server.TOOLS["build_pokemon_team"] = (TEAM_BUILDER_TOOL, fake_executor)
+            response = handle_message(
+                {
+                    "jsonrpc": "2.0",
+                    "id": 4,
+                    "method": "tools/call",
+                    "params": {"name": "build_pokemon_team", "arguments": {"pokemon": ["pikachu"]}},
+                }
+            )
+        finally:
+            pokemon_mcp_server.TOOLS["build_pokemon_team"] = original
+
+        self.assertEqual(response["result"]["content"][0]["text"], "fake team")
+        self.assertEqual(response["result"]["structuredContent"]["tool_name"], "build_pokemon_team")
+        self.assertEqual(response["result"]["structuredContent"]["data"], {"team_size": 6, "team": []})
 
     def test_unknown_tool_returns_json_rpc_error(self) -> None:
         response = handle_message(

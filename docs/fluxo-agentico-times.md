@@ -35,6 +35,7 @@ Responsabilidade:
 
 Tools recomendadas:
 
+- `build_pokemon_team`, para gerar uma base inicial estruturada com 6 membros, dois trios, aces, justificativas e pendencias;
 - `rank_pokemon`, para levantar candidatos por tipo ou perfil de stats;
 - `rank_pokemon_moveset`, para avaliar golpes ofensivos de um Pokemon;
 - `list_items`, para consultar itens gerais e descricoes;
@@ -161,6 +162,12 @@ Saida esperada:
 - papel pretendido;
 - lacuna que cada candidato cobre;
 - justificativa objetiva.
+
+## Mapeamento Para `build_pokemon_team`
+
+A tool `build_pokemon_team` condensa o fluxo A-E em uma orquestracao deterministica para uso MCP. Ela executa validacao inicial de Pokemon informados, preserva escolhas do usuario como membros fixos, seleciona candidatos ranqueados para vagas abertas, separa os membros em dois trios e retorna pendencias quando faltarem dados ou candidatos.
+
+Esse resultado deve ser entendido como base rastreavel para os agentes. O Agente A ainda pode buscar dados adicionais de golpes, itens e tipos; o Agente C pode validar regras e coesao; e o Agente D pode auditar fraquezas. A primeira versao da tool nao finaliza itens seguraveis, movesets competitivos completos nem aleatoriedade controlada.
 
 ## Diretriz de Fluxo de Trabalho
 

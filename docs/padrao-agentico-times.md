@@ -115,9 +115,31 @@ Prioridades:
 
 Quando as tools do projeto estiverem disponiveis:
 
+- Use `build_pokemon_team` quando precisar de uma base estruturada e validada para completar um time de 6 Pokemon em dois trios.
 - Use `rank_pokemon` para buscar bons candidatos por tipo ou perfil de stats.
 - Use `rank_pokemon_moveset` para avaliar golpes de um Pokemon candidato.
 - Use `list_items` para consultar itens gerais, categorias e descricoes.
+
+## Contrato Da Tool `build_pokemon_team`
+
+A tool `build_pokemon_team` executa a montagem inicial de forma deterministica e retorna dados JSON-serializaveis. Ela aceita:
+
+- `pokemon`: lista opcional de nomes ou IDs escolhidos pelo usuario;
+- `aces`: lista opcional com ate dois nomes ou IDs que devem liderar os trios;
+- `primary_strategy`: estrategia opcional do trio principal;
+- `complementary_strategy`: estrategia opcional do trio complementar.
+
+A resposta segue a estrutura geral deste documento e inclui:
+
+- `team_size`: sempre 6;
+- `is_complete`: indica se seis membros validados foram selecionados;
+- `user_requested`: Pokemon normalizados depois de repeticoes e limite de 6;
+- `team_structure`: estrategias dos trios `primary` e `complementary`;
+- `team`: membros com `name`, `source`, `locked`, `role`, `trio`, `reason`, `notes` e, para escolhas da AI, `replaces_gap`;
+- `analysis`: pontos fortes, diferenca entre trios, complementaridade, riscos e criterios usados;
+- `pending`: dados nao encontrados, duplicidades, limite aplicado, falhas de consulta ou candidatos insuficientes.
+
+A tool nao deve ser tratada como simulador competitivo completo. Itens seguraveis, movesets finais, aleatoriedade controlada e ajustes finos de formato competitivo continuam como escopo de validacao posterior quando o usuario pedir esse nivel de detalhe.
 
 ## Papeis Sugeridos
 
