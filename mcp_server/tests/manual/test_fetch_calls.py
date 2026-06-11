@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from mcp_server.src.infrastructure.pokeapi import ItemFetcher, PokemonFetcher, PokemonMovesFetcher
+from mcp_server.src.infrastructure.pokeapi import PokemonMovesFetcher
 
 ROOT_DIR = Path(__file__).resolve().parents[3]
 if str(ROOT_DIR) not in sys.path:
