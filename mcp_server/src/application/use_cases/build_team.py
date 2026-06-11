@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable, Protocol
+from typing import Any, Protocol
 
 from mcp_server.src.application.use_cases.rank_pokemon import rank_pokemon
 from mcp_server.src.infrastructure.pokeapi import PokemonFetcher, PokemonMovesFetcher

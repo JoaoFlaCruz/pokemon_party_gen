@@ -9,12 +9,11 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
+from mcp_server.src.infrastructure.pokeapi import ItemFetcher, PokemonFetcher, PokemonMovesFetcher
 
 ROOT_DIR = Path(__file__).resolve().parents[3]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
-
-from mcp_server.src.infrastructure.pokeapi import ItemFetcher, PokemonFetcher, PokemonMovesFetcher
 
 
 def print_sample(label: str, data: list[dict], limit: int = 5) -> None:
@@ -36,9 +35,7 @@ def print_items_sample(label: str, data: dict, limit: int = 5) -> None:
 
 
 def main() -> None:
-    fetcher = PokemonFetcher()
     moves_fetcher = PokemonMovesFetcher()
-    item_fetcher = ItemFetcher()
 
     #print_sample("Todos os Pokemon", fetcher.fetch_pokemon())
     #print_sample("Tipo fire", fetcher.fetch_pokemon(types=["fire"]))
