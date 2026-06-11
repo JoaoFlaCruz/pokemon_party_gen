@@ -24,8 +24,7 @@ Responsibilities:
 
 Recommended tools:
 
-- `build_pokemon_team`, to generate an initial structured base with six members, two trios, aces, justifications, and pending issues;
-- `rank_pokemon`, to identify candidates by type or stat profile;
+- `rank_pokemon`, to identify Pokemon Champions candidates by type or stat profile;
 - `rank_pokemon_moveset`, to evaluate offensive moves for one Pokemon;
 - `list_items`, to query general items and descriptions;
 - `get_type_relations`, to query offensive and defensive type relations.
@@ -141,35 +140,33 @@ Expected output:
 - gap each candidate covers;
 - objective justification.
 
-## Mapping To `build_pokemon_team`
+## Tool Boundary
 
-The `build_pokemon_team` tool condenses the A-E flow into deterministic orchestration for MCP usage. It performs initial validation for provided Pokemon, preserves user choices as fixed members, selects ranked Pokemon Champions candidates for open slots, separates members into two trios, and returns pending issues when data, Champions membership, or candidates are missing.
-
-Treat that result as a traceable base for the agents. Agent A can still fetch additional move, item, and type data; Agent C can validate rules and cohesion; Agent D can audit weaknesses. The first version of the tool does not finalize held items, complete competitive movesets, or controlled randomness.
+Full team construction is an AI workflow responsibility, not a dedicated MCP tool. `build_pokemon_team` is not active. Agents must preserve user-selected Pokemon as fixed members, use lower-level tools to gather validated data, and choose AI-selected additions from Pokemon Champions candidates returned by `rank_pokemon`.
 
 ## One-To-Five-Call Operating Model
 
 Agents should use the fewest calls needed to satisfy the user request and validation needs.
 
 ```text
-1 call  -> build_pokemon_team
-2 calls -> build_pokemon_team + rank_pokemon
-3 calls -> add rank_pokemon_moveset
-4 calls -> add get_type_relations
+1 call  -> rank_pokemon
+2 calls -> add one focused rank_pokemon, rank_pokemon_moveset, or get_type_relations call
+3 calls -> add rank_pokemon_moveset when moveset confidence matters
+4 calls -> add get_type_relations for type audit
 5 calls -> add list_items or one focused correction call
 ```
 
 ### 1 Call: Complete A Basic Team
 
-Use only `build_pokemon_team` when the user asks for a complete team and does not request detailed validation. This is enough when:
+Use `rank_pokemon` when the user asks for a complete team and open slots need candidate data but the request does not require detailed validation. This is enough when:
 
-- user choices are valid or pending issues are acceptable;
-- the team is complete with six members;
+- user choices are clear or pending issues are acceptable;
+- Champions-scoped candidates are enough for the AI to complete six members;
 - the user did not ask for movesets, itemization, or matchup audit.
 
 ### 2 Calls: Compare Or Correct Candidates
 
-Add `rank_pokemon` when the user asks for alternatives, wants a specific type or stat profile, or when `build_pokemon_team` reports a gap that needs candidate search.
+Add one focused candidate or validation call when the user asks for alternatives, wants a specific type or stat profile, or when the draft has a gap that needs candidate search.
 
 ### 3 Calls: Validate Moveset Fit
 
@@ -198,7 +195,7 @@ Use these decisions:
 
 Reflection checkpoints:
 
-1. After the initial `build_pokemon_team` result, check completion, preserved user choices, Champions-scope pending issues, trio structure, ace distinction, pending issues, and whether the user's request justifies additional calls.
+1. After the initial team draft, check completion, preserved user choices, Champions-scope pending issues, trio structure, ace distinction, pending issues, and whether the user's request justifies additional calls.
 2. After Agent C validates strategy, choose whether to proceed, refine the candidate set, ask the user, or stop with pending issues.
 3. After Agent D audits balance, distinguish acceptable risk from a blocker that deserves one focused correction.
 4. Before the final response, confirm the answer satisfies the user request and declare relevant risks, uncertainty, or unresolved data.

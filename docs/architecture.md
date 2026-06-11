@@ -1,6 +1,6 @@
 # Project Architecture
 
-This project provides Python utilities for querying a PokeAPI-compatible API, ranking Pokemon and moves, building Pokemon teams, and exposing that functionality through MCP tools for agents.
+This project provides Python utilities for querying a PokeAPI-compatible API, ranking Pokemon and moves, and exposing that functionality through MCP tools for agents.
 
 ## Structure
 
@@ -17,12 +17,10 @@ mcp_server/
                 item_tool.py
                 pokemon_moveset_tool.py
                 pokemon_ranking_tool.py
-                team_builder_tool.py
                 type_relations_tool.py
                 __init__.py
         application/
             use_cases/
-                build_team.py
                 rank_pokemon.py
                 rank_moveset.py
             dtos/
@@ -47,7 +45,6 @@ mcp_server/
     tests/
         application/
             use_cases/
-                test_build_team.py
                 test_rankings.py
         infrastructure/
             pokeapi/
@@ -122,9 +119,7 @@ When filters are combined, the result is the intersection of Pokemon found by ea
 
 ## Rule Layer
 
-`mcp_server/src/application/use_cases/` contains ranking logic, deterministic team-building logic, and CLI entry points when a module has one.
-
-`build_team.py` builds a structured response for six-Pokemon teams from user choices, optional strategies, and ranked Champions candidates. It normalizes input, removes duplicates while preserving the first occurrence, applies the six-user-choice limit, validates Pokemon through an injectable PokeAPI-compatible source, and completes remaining slots with ranked candidates deterministically. The response includes `team_size`, `is_complete`, `user_requested`, `team_structure`, `team`, `analysis`, and `pending`. User Pokemon receive `source=user` and `locked=true`; when Champions membership can be checked, out-of-library user choices are preserved and reported in `pending`. AI-selected Pokemon receive `source=ai`, `locked=false`, `reason`, `role`, `replaces_gap`, and `champions_dex=true`, because default candidate completion is constrained to the Pokemon Champions library. If data cannot be validated, the uncertainty is recorded in `pending` instead of inventing stats, types, moves, abilities, or items.
+`mcp_server/src/application/use_cases/` contains ranking logic and CLI entry points when a module has one. Full six-Pokemon team construction is handled by the AI workflow described in `docs/agentic-team-pattern.md` and `docs/agentic-team-flow.md`, using validated lower-level tool data rather than a dedicated team-builder use case.
 
 `rank_pokemon.py` ranks non-legendary Pokemon that are not marked as `is_battle_only`, using a base score formed by:
 
@@ -169,9 +164,7 @@ Ties use, in order, higher accuracy, higher power, and move name. `status` moves
 
 `type_relations_tool.py` defines the `get_type_relations` tool, validates `type`, calls `TypeRelationsFetcher`, and returns offensive and defensive type relations in structured and textual formats.
 
-`pokemon_ranking_tool.py` defines the `rank_pokemon` tool, validates optional type filters, `offense_stat`, `priority_stat`, `speed_mode`, `head_size`, and `champions_only`, calls `rank_pokemon.py`, and returns a structured ranking with presentation text. The MCP default is `champions_only=true`, so AI-facing rankings use the Pokemon Champions library unless explicitly disabled. Results already exclude legendary species and `is_battle_only` forms. After ranking, the tool also reads the SQLite database configured by `BANNED_POKEMON_DB_PATH` and removes any Pokemon registered in the `banned_pokemon` table, with columns `id` and `name`. If the database file does not exist, no additional filter is applied.
-
-`team_builder_tool.py` defines the `build_pokemon_team` tool, validates `pokemon`, `aces`, `primary_strategy`, and `complementary_strategy`, calls `build_team.py`, and returns a structured team proposal with `selection_scope` metadata for Champions-scoped AI candidates. The tool preserves user-provided Pokemon as fixed members when validated, completes open slots with ranked candidates, separates the team into `primary` and `complementary` trios, marks two aces when possible, and declares pending issues for missing data, conflicts, or insufficient candidates.
+`pokemon_ranking_tool.py` defines the `rank_pokemon` tool, validates optional type filters, `offense_stat`, `priority_stat`, `speed_mode`, and `head_size`, calls `rank_pokemon.py`, and returns a structured ranking with presentation text. MCP ranking always uses `champions_only=true`, so AI-facing candidate selection is constrained to the Pokemon Champions library and cannot be disabled by tool input. Results already exclude legendary species and `is_battle_only` forms. After ranking, the tool also reads the SQLite database configured by `BANNED_POKEMON_DB_PATH` and removes any Pokemon registered in the `banned_pokemon` table, with columns `id` and `name`. If the database file does not exist, no additional filter is applied.
 
 `pokemon_moveset_tool.py` defines the `rank_pokemon_moveset` tool, validates arguments, calls the ranking rule, and returns:
 
@@ -187,13 +180,12 @@ Ties use, in order, higher accuracy, higher power, and move name. `status` moves
 - `tools/list`;
 - `tools/call`.
 
-The `tools/call` request dispatches by tool name and supports `ban_pokemon`, `build_pokemon_team`, `get_type_relations`, `list_items`, `rank_pokemon`, and `rank_pokemon_moveset`, returning textual content and `structuredContent`.
+The `tools/call` request dispatches by tool name and supports `ban_pokemon`, `get_type_relations`, `list_items`, `rank_pokemon`, and `rank_pokemon_moveset`, returning textual content and `structuredContent`. `build_pokemon_team` is not an active MCP tool; calls with that name use the standard unknown-tool error path.
 
 ## Tests
 
 Main unit tests are located in:
 
-- `mcp_server/tests/application/use_cases/test_build_team.py`: tests deterministic team-building with fakes, without HTTP.
 - `mcp_server/tests/application/use_cases/test_rankings.py`: tests ranking rules with fakes, without HTTP.
 - `mcp_server/tests/mcp/tools/test_tools.py`: tests tool schemas, formatting, validation, and basic MCP behavior.
 - `mcp_server/tests/infrastructure/pokeapi/test_fetchers.py`: tests fetcher data assembly without real HTTP.
@@ -203,13 +195,13 @@ Main unit tests are located in:
 Recommended unit test command:
 
 ```bash
-python3 -m unittest mcp_server.tests.application.use_cases.test_build_team mcp_server.tests.application.use_cases.test_rankings mcp_server.tests.mcp.tools.test_tools mcp_server.tests.infrastructure.pokeapi.test_fetchers
+python3 -m unittest mcp_server.tests.application.use_cases.test_rankings mcp_server.tests.mcp.tools.test_tools mcp_server.tests.infrastructure.pokeapi.test_fetchers
 ```
 
 ## Main Flow
 
 ```text
-CLI or MCP/tool (`build_pokemon_team`, `get_type_relations`, `list_items`, `rank_pokemon`, or `rank_pokemon_moveset`)
+CLI or MCP/tool (`get_type_relations`, `list_items`, `rank_pokemon`, or `rank_pokemon_moveset`)
     -> mcp_server/src/application/use_cases/ or mcp_server/src/infrastructure/pokeapi/
         -> PokeAPI REST
         -> ranking rule/adaptation
@@ -231,13 +223,13 @@ CLI or MCP/tool (`ban_pokemon`)
 - Agent C: validates team rules, duplicates, items, and strategic cohesion.
 - Agent D: audits types, speeds, offensive and defensive stats, roles, weaknesses, and gaps.
 
-That flow follows `docs/agentic-team-flow.pdf` and should be used together with `docs/agentic-team-pattern.md` when an AI needs to complete a six-Pokemon team from user choices and strategy. The workflow includes reflection checkpoints after the initial team draft, strategic validation, balance audit, and before the final response, using `accept`, `refine`, `ask_user`, or `stop_with_pending` decisions to keep refinement bounded. The `build_pokemon_team` tool is the deterministic MCP implementation of that contract: it does not replace final human or agentic analysis, but it provides a validated, structured, and traceable base for agents.
+That flow follows `docs/agentic-team-flow.pdf` and should be used together with `docs/agentic-team-pattern.md` when an AI needs to complete a six-Pokemon team from user choices and strategy. The workflow includes reflection checkpoints after the initial team draft, strategic validation, balance audit, and before the final response, using `accept`, `refine`, `ask_user`, or `stop_with_pending` decisions to keep refinement bounded. AI-selected additions must be chosen from Champions-scoped candidate data provided by `rank_pokemon`; user-selected Pokemon remain fixed choices and are distinguished from AI additions.
 
 ## Maintenance Principles
 
 - Keep HTTP calls restricted to `mcp_server/src/infrastructure/pokeapi/`.
 - When adding a fetcher, export it in `mcp_server/src/infrastructure/pokeapi/__init__.py` and cover data assembly with tests that do not require real HTTP.
-- Keep ranking and team-building rules in `mcp_server/src/application/use_cases/`, testable with fakes.
+- Keep ranking rules in `mcp_server/src/application/use_cases/`, testable with fakes.
 - Keep agent/MCP wrappers in `mcp_server/src/mcp/tools/` and routing in `mcp_server/src/mcp/server.py`.
 - When adding a tool, register its schema, executor, presentation, MCP routing, and tests.
 - When changing rules, response contracts, arguments, environment variables, or execution flow, update this documentation.

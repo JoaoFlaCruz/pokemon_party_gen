@@ -102,8 +102,7 @@ Priorities:
 
 When project tools are available:
 
-- Use `build_pokemon_team` when you need a structured and validated base for completing a six-Pokemon team in two trios.
-- Use `rank_pokemon` to find good candidates by type or stat profile.
+- Use `rank_pokemon` to find AI-selected candidates by type or stat profile. The MCP tool always uses Pokemon Champions scope.
 - Use `rank_pokemon_moveset` to evaluate a candidate's moves.
 - Use `get_type_relations` to audit offensive and defensive type interactions.
 - Use `list_items` to query general items, categories, and descriptions.
@@ -113,10 +112,10 @@ When project tools are available:
 Use the lowest number of tool calls that satisfies the user's request and the required validation depth.
 
 1. **One call: basic completion**
-   - Use `build_pokemon_team` when the user asks for a complete team and does not require detailed moveset, item, or matchup validation.
-   - Stop after this call if the output is complete and pending issues are acceptable for the request.
+   - Use `rank_pokemon` when open slots need data-backed candidates and the user does not require detailed moveset, item, or matchup validation.
+   - Stop after this call if the candidate data is enough for the AI to complete and explain the team.
 2. **Two calls: focused candidate validation**
-   - Add `rank_pokemon` when the user asks for candidate comparison, a specific type/profile, or a replacement for a known gap.
+   - Add a second focused `rank_pokemon`, `rank_pokemon_moveset`, or `get_type_relations` call when the user asks for comparison, a specific profile, or validation of a known gap.
 3. **Three calls: moveset confidence**
    - Add `rank_pokemon_moveset` for an ace or uncertain candidate when the user asks about offensive fit, best moves, or damage-class alignment.
 4. **Four calls: type audit**
@@ -124,29 +123,7 @@ Use the lowest number of tool calls that satisfies the user's request and the re
 5. **Five calls: itemization or final correction**
    - Add `list_items` when the request involves held items, or use one additional focused tool call to correct a prioritized weakness found during validation.
 
-Do not use all five calls by default. A simple request should stay at one call. Increase call depth only when the user's request, pending issues, or validation findings justify it.
-
-## `build_pokemon_team` Tool Contract
-
-The `build_pokemon_team` tool performs the initial team assembly deterministically and returns JSON-serializable data. It accepts:
-
-- `pokemon`: optional list of names or IDs chosen by the user;
-- `aces`: optional list with up to two names or IDs that should lead the trios;
-- `primary_strategy`: optional strategy for the primary trio;
-- `complementary_strategy`: optional strategy for the complementary trio.
-
-The response follows this document's general structure and includes:
-
-- `team_size`: always 6;
-- `is_complete`: whether six validated members were selected;
-- `user_requested`: normalized Pokemon after duplicate handling and the six-Pokemon limit;
-- `team_structure`: strategies for the `primary` and `complementary` trios;
-- `selection_scope`: metadata showing that AI candidates are constrained to the Pokemon Champions library;
-- `team`: members with `name`, `source`, `locked`, `role`, `trio`, `reason`, `notes`, Champions membership when known, and, for AI choices, `replaces_gap`;
-- `analysis`: strengths, trio differences, complementarity, risks, and selection criteria;
-- `pending`: unresolved data, duplicates, applied limits, fetch failures, or insufficient candidates.
-
-The tool is not a full competitive simulator. Held items, final movesets, controlled randomness, and competitive-format fine-tuning remain later validation scope when the user asks for that level of detail.
+Do not use all five calls by default. A simple request should stay at one call. Increase call depth only when the user's request, pending issues, or validation findings justify it. `build_pokemon_team` is not an active project tool; full team assembly is an AI responsibility using validated lower-level data.
 
 ## Suggested Roles
 

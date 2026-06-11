@@ -10,7 +10,6 @@ from mcp_server.src.mcp.tools.banned_pokemon_tool import BAN_POKEMON_TOOL, execu
 from mcp_server.src.mcp.tools.item_tool import ITEM_TOOL, execute_item_tool
 from mcp_server.src.mcp.tools.pokemon_moveset_tool import POKEMON_MOVESET_TOOL, execute_pokemon_moveset_tool
 from mcp_server.src.mcp.tools.pokemon_ranking_tool import POKEMON_RANKING_TOOL, execute_pokemon_ranking_tool
-from mcp_server.src.mcp.tools.team_builder_tool import TEAM_BUILDER_TOOL, execute_team_builder_tool
 from mcp_server.src.mcp.tools.type_relations_tool import TYPE_RELATIONS_TOOL, execute_type_relations_tool
 
 JSONRPC_VERSION = "2.0"
@@ -35,10 +34,6 @@ TOOLS = {
     POKEMON_RANKING_TOOL["function"]["name"]: (
         POKEMON_RANKING_TOOL,
         execute_pokemon_ranking_tool,
-    ),
-    TEAM_BUILDER_TOOL["function"]["name"]: (
-        TEAM_BUILDER_TOOL,
-        execute_team_builder_tool,
     ),
     TYPE_RELATIONS_TOOL["function"]["name"]: (
         TYPE_RELATIONS_TOOL,
@@ -91,9 +86,8 @@ def dispatch(method: str | None, params: dict[str, Any]) -> dict[str, Any]:
                 "Use get_type_relations quando o usuario pedir relacoes, fraquezas, "
                 "imunidades ou efetividade entre tipos. Use list_items quando o usuario "
                 "pedir itens Pokemon, descricoes de itens ou validacao geral de itens. "
-                "Use rank_pokemon para rankings de Pokemon por stats e filtros de tipo. "
-                "Use build_pokemon_team quando o usuario pedir um time completo de 6 Pokemon, "
-                "dois trios, aces ou selecao de membros complementares. "
+                "Use rank_pokemon para rankings de Pokemon por stats e filtros de tipo; "
+                "esse ranking sempre usa o escopo Pokemon Champions para candidatos de IA. "
                 "Use rank_pokemon_moveset quando o usuario pedir ranking, moveset, "
                 "melhores golpes ou analise ofensiva de um Pokemon por nome ou ID."
             ),

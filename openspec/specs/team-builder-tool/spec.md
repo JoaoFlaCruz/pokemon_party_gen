@@ -1,24 +1,7 @@
 ## Purpose
 
 Define the MCP contract for building a complete six-Pokemon team from user-selected Pokemon, optional strategies, and validated PokeAPI-compatible data.
-
 ## Requirements
-
-### Requirement: Team builder tool schema
-The system SHALL expose a `build_pokemon_team` MCP tool that accepts user-selected Pokemon and optional team-building constraints.
-
-#### Scenario: Tool is listed
-- **WHEN** an MCP client calls `tools/list`
-- **THEN** the response includes a `build_pokemon_team` tool with an input schema.
-
-#### Scenario: Minimal valid request
-- **WHEN** the tool is called with no user-selected Pokemon and no optional constraints
-- **THEN** the system accepts the request and attempts to build a six-Pokemon team from validated candidates.
-
-#### Scenario: Invalid selected Pokemon input
-- **WHEN** the tool is called with `pokemon` that is not an array of strings or integers
-- **THEN** the system returns a validation error.
-
 ### Requirement: User-selected Pokemon preservation
 The system SHALL preserve validated user-selected Pokemon as fixed team members in the order provided by the user.
 
@@ -97,22 +80,15 @@ The system SHALL return team-level analysis, Champions library scope, and pendin
 - **WHEN** validation, data availability, Champions library scope, or user constraints prevent a confident decision
 - **THEN** the response includes a `pending` entry with the affected input or decision and a human-readable reason.
 
-### Requirement: MCP response format
-The system SHALL return MCP tool results with both presentation text and structured content.
-
-#### Scenario: Tool call response
-- **WHEN** an MCP client calls `build_pokemon_team`
-- **THEN** the MCP server returns `content` with a text presentation and `structuredContent` containing `tool_name`, `input`, `data`, and `presentation`.
-
 ### Requirement: English team-building documentation
-The system SHALL document the team-builder tool and agentic team-building flow in English while preserving exact tool names, JSON keys, command examples, and behavioral contracts.
+The system SHALL document agentic team-building flow in English while preserving exact tool names, JSON keys, command examples, and behavioral contracts for the remaining tools.
 
 #### Scenario: Documentation is translated
 - **WHEN** a maintainer reads the project documentation for architecture, team-building rules, or agentic team flow
-- **THEN** the prose is available in English and preserves the existing technical meaning.
+- **THEN** the prose is available in English and no longer presents `build_pokemon_team` as an available project tool.
 
 #### Scenario: Technical identifiers are preserved
-- **WHEN** documentation references tool names, response fields, role values, commands, file paths, or JSON examples
+- **WHEN** documentation references remaining tool names, response fields, role values, commands, file paths, or JSON examples
 - **THEN** those identifiers remain exact and are not translated into prose-only equivalents.
 
 #### Scenario: Documentation file names are translated
@@ -120,15 +96,15 @@ The system SHALL document the team-builder tool and agentic team-building flow i
 - **THEN** their file names are also renamed to English equivalents and repository references are updated to the new paths.
 
 ### Requirement: One-to-five-call agentic flow
-The system SHALL document a 1-to-5-call decision guide for team-building agents using `build_pokemon_team` and supporting MCP tools.
+The system SHALL document a bounded decision guide for team-building agents using the remaining validation, ranking, moveset, item, and type-relation tools.
 
-#### Scenario: Single-call path
-- **WHEN** a user asks for a basic complete team without detailed validation
-- **THEN** the documentation identifies one `build_pokemon_team` call as the minimum sufficient path.
+#### Scenario: Candidate-first path
+- **WHEN** a user asks for a complete team and the AI needs candidate data for open slots
+- **THEN** the documentation directs the AI to use `rank_pokemon` with forced Pokemon Champions scope instead of `build_pokemon_team`.
 
 #### Scenario: Deeper validation path
 - **WHEN** a user asks for candidate comparison, moveset confidence, type auditing, itemization, or correction of a known weakness
-- **THEN** the documentation explains which additional calls should be used up to a maximum recommended sequence of five calls.
+- **THEN** the documentation explains which remaining tools can be used within a bounded validation sequence.
 
 #### Scenario: Avoid unnecessary calls
 - **WHEN** a simple request can be satisfied with fewer calls
@@ -138,7 +114,7 @@ The system SHALL document a 1-to-5-call decision guide for team-building agents 
 The system SHALL document explicit reflection checkpoints for agentic Pokemon team creation before finalizing a recommendation.
 
 #### Scenario: Initial team reflection
-- **WHEN** an agent receives an initial `build_pokemon_team` result
+- **WHEN** an agent drafts an initial team from user choices and validated candidate data
 - **THEN** the documented workflow requires a reflection checkpoint that checks completion, preserved user choices, trio structure, ace distinction, pending issues, and whether additional calls are justified.
 
 #### Scenario: Validation reflection
@@ -190,3 +166,4 @@ The system SHALL document loop-control rules that keep Pokemon team reflection b
 #### Scenario: Avoid repeated low-value refinement
 - **WHEN** a refinement would repeat the same kind of call without new information or would exceed the documented call model
 - **THEN** the documented workflow requires `accept`, `ask_user`, or `stop_with_pending` instead of continuing the loop.
+

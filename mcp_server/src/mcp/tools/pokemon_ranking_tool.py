@@ -64,13 +64,6 @@ POKEMON_RANKING_TOOL = {
                         "high prioriza Pokemon rapidos e low prioriza Pokemon lentos."
                     ),
                 },
-                "champions_only": {
-                    "type": "boolean",
-                    "description": (
-                        "Quando true, limita candidatos a especies presentes "
-                        "na Pokedex Pokemon Champions. Padrao: true."
-                    ),
-                },
                 "head_size": {
                     "type": "integer",
                     "minimum": 1,
@@ -114,9 +107,7 @@ def execute_pokemon_ranking_tool(
     if speed_mode not in SPEED_MODE_CHOICES:
         raise ValueError("speed_mode deve ser ignore, high ou low.")
 
-    champions_only = arguments.get("champions_only", True)
-    if not isinstance(champions_only, bool):
-        raise ValueError("'champions_only' deve ser booleano.")
+    champions_only = True
 
     head_size = arguments.get("head_size", 10)
     if not isinstance(head_size, int) or head_size < 1:
@@ -289,7 +280,6 @@ def main() -> None:
     parser.add_argument("--priority-stat", choices=PRIORITY_STAT_CHOICES, default=None)
     parser.add_argument("--speed-mode", choices=SPEED_MODE_CHOICES, default=SPEED_IGNORE)
     parser.add_argument("--head-size", type=int, default=10)
-    parser.add_argument("--all-pokemon", action="store_true")
     parser.add_argument("--max-workers", type=int, default=POKEAPI_MAX_WORKERS)
     parser.add_argument("--banned-db-path", default=BANNED_POKEMON_DB_PATH)
     args = parser.parse_args()
@@ -321,7 +311,6 @@ def main() -> None:
             "priority_stat": args.priority_stat,
             "speed_mode": args.speed_mode,
             "head_size": args.head_size,
-            "champions_only": not args.all_pokemon,
         },
         ranker=ranker,
         banned_db_path=args.banned_db_path,
