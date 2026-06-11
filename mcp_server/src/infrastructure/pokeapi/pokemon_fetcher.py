@@ -11,7 +11,11 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urljoin
 from urllib.request import Request, urlopen
 
-from mcp_server.src.config.env import POKEAPI_BASE_URL, POKEAPI_MAX_WORKERS, POKEAPI_TIMEOUT
+from mcp_server.src.config.env import (
+    POKEAPI_BASE_URL,
+    POKEAPI_MAX_WORKERS,
+    POKEAPI_TIMEOUT,
+)
 
 
 @dataclass(frozen=True)
@@ -73,7 +77,9 @@ class PokemonFetcher:
         candidate_names = self._candidate_names(normalized_types, ability, move)
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            summaries = executor.map(self._fetch_pokemon_summary, sorted(candidate_names))
+            summaries = executor.map(
+                self._fetch_pokemon_summary, sorted(candidate_names)
+            )
 
         return [summary.to_dict() for summary in summaries if summary is not None]
 
@@ -141,7 +147,9 @@ class PokemonFetcher:
             is_mega=is_mega,
             is_battle_only=bool(form_payload.get("is_battle_only")),
             base_pokemon=species_name if is_mega else None,
-            required_item=self._mega_required_item(payload["name"]) if is_mega else None,
+            required_item=self._mega_required_item(payload["name"])
+            if is_mega
+            else None,
         )
 
     def _fetch_species(self, species_name: str) -> dict[str, Any]:
@@ -194,7 +202,9 @@ class PokemonFetcher:
             with urlopen(request, timeout=self.timeout) as response:
                 return json.loads(response.read().decode("utf-8"))
         except HTTPError as exc:
-            raise RuntimeError(f"API request failed with HTTP {exc.code}: {url}") from exc
+            raise RuntimeError(
+                f"API request failed with HTTP {exc.code}: {url}"
+            ) from exc
         except URLError as exc:
             raise RuntimeError(f"API request failed: {url}") from exc
 
@@ -203,7 +213,9 @@ class PokemonFetcher:
         if not types:
             return ()
 
-        normalized = tuple(item.strip().lower() for item in types if item and item.strip())
+        normalized = tuple(
+            item.strip().lower() for item in types if item and item.strip()
+        )
         if len(normalized) > 2:
             raise ValueError("Use no máximo dois tipos por consulta.")
 

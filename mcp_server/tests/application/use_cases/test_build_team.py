@@ -45,7 +45,9 @@ class BuildPokemonTeamTests(unittest.TestCase):
         )
         self.assertTrue(all(member["source"] == "user" for member in result["team"]))
         self.assertTrue(all(member["locked"] for member in result["team"]))
-        self.assertIn("duplicate-user-pokemon", [issue["type"] for issue in result["pending"]])
+        self.assertIn(
+            "duplicate-user-pokemon", [issue["type"] for issue in result["pending"]]
+        )
         self.assertIn("team-size-limit", [issue["type"] for issue in result["pending"]])
 
     def test_records_unknown_pokemon_and_completes_with_candidates(self) -> None:
@@ -57,7 +59,9 @@ class BuildPokemonTeamTests(unittest.TestCase):
 
         self.assertTrue(result["is_complete"])
         self.assertEqual(result["team"][0]["name"], "pikachu")
-        self.assertIn("unresolved-pokemon", [issue["type"] for issue in result["pending"]])
+        self.assertIn(
+            "unresolved-pokemon", [issue["type"] for issue in result["pending"]]
+        )
         self.assertNotIn("missingno", [member["name"] for member in result["team"]])
 
     def test_records_data_failure_and_insufficient_candidates(self) -> None:
@@ -72,8 +76,12 @@ class BuildPokemonTeamTests(unittest.TestCase):
 
         self.assertFalse(result["is_complete"])
         self.assertEqual([member["name"] for member in result["team"]], ["pikachu"])
-        self.assertIn("candidate-data-unavailable", [issue["type"] for issue in result["pending"]])
-        self.assertIn("insufficient-candidates", [issue["type"] for issue in result["pending"]])
+        self.assertIn(
+            "candidate-data-unavailable", [issue["type"] for issue in result["pending"]]
+        )
+        self.assertIn(
+            "insufficient-candidates", [issue["type"] for issue in result["pending"]]
+        )
 
     def test_places_two_user_aces_in_separate_trios(self) -> None:
         result = build_pokemon_team(
@@ -91,8 +99,12 @@ class BuildPokemonTeamTests(unittest.TestCase):
         self.assertEqual(result["team"][3]["name"], "pikachu")
         self.assertEqual(result["team"][3]["role"], "ace")
         self.assertEqual(result["team"][3]["trio"], "complementary")
-        self.assertEqual(result["team_structure"]["primary_trio_strategy"], "speed pressure")
-        self.assertEqual(result["team_structure"]["complementary_trio_strategy"], "wallbreak")
+        self.assertEqual(
+            result["team_structure"]["primary_trio_strategy"], "speed pressure"
+        )
+        self.assertEqual(
+            result["team_structure"]["complementary_trio_strategy"], "wallbreak"
+        )
         ai_members = [member for member in result["team"] if member["source"] == "ai"]
         self.assertTrue(all(member.get("replaces_gap") for member in ai_members))
 

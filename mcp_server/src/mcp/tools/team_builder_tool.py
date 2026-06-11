@@ -57,7 +57,9 @@ def execute_team_builder_tool(
     """Execute the Pokemon team builder tool with AI-provided arguments."""
     pokemon = validate_optional_identifier_list(arguments.get("pokemon"), "pokemon")
     aces = validate_optional_identifier_list(arguments.get("aces"), "aces", max_items=2)
-    primary_strategy = validate_optional_text(arguments.get("primary_strategy"), "primary_strategy")
+    primary_strategy = validate_optional_text(
+        arguments.get("primary_strategy"), "primary_strategy"
+    )
     complementary_strategy = validate_optional_text(
         arguments.get("complementary_strategy"),
         "complementary_strategy",
@@ -167,7 +169,9 @@ def format_team_presentation(data: dict[str, Any]) -> str:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Execute the Pokemon team builder AI tool.")
+    parser = argparse.ArgumentParser(
+        description="Execute the Pokemon team builder AI tool."
+    )
     parser.add_argument("--pokemon", action="append", default=None)
     parser.add_argument("--ace", dest="aces", action="append", default=None)
     parser.add_argument("--primary-strategy", default=None)

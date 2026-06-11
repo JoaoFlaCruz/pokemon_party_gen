@@ -6,7 +6,10 @@ import unittest
 from typing import Any
 
 from mcp_server.src.application.use_cases.rank_moveset import rank_moveset_data
-from mcp_server.src.application.use_cases.rank_pokemon import rank_pokemon, score_pokemon
+from mcp_server.src.application.use_cases.rank_pokemon import (
+    rank_pokemon,
+    score_pokemon,
+)
 
 
 class FakePokemonFetcher:
@@ -99,7 +102,9 @@ class RankPokemonTests(unittest.TestCase):
             max_workers=3,
         )
 
-        self.assertEqual([item["name"] for item in result], ["balanced-high", "special-high"])
+        self.assertEqual(
+            [item["name"] for item in result], ["balanced-high", "special-high"]
+        )
         self.assertEqual([item["score"] for item in result], [390, 390])
         self.assertEqual(fetcher.calls[0]["types"], ["grass", "poison"])
         self.assertEqual(fetcher.calls[0]["max_workers"], 3)
@@ -239,7 +244,12 @@ class RankMovesetTests(unittest.TestCase):
         self.assertEqual(result["selected_damage_class"], "physical")
         self.assertEqual(
             [move["name"] for move in result["moves"]],
-            ["physical-tie-accuracy", "physical-high-score", "status-one", "status-two"],
+            [
+                "physical-tie-accuracy",
+                "physical-high-score",
+                "status-one",
+                "status-two",
+            ],
         )
         self.assertEqual(result["moves"][0]["score"], 226.0)
         self.assertEqual(result["moves"][1]["score"], 226.0)

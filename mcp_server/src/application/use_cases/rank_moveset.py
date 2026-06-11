@@ -6,7 +6,11 @@ import argparse
 import json
 from typing import Any, Protocol
 
-from mcp_server.src.config.env import POKEAPI_BASE_URL, POKEAPI_MAX_WORKERS, POKEAPI_TIMEOUT
+from mcp_server.src.config.env import (
+    POKEAPI_BASE_URL,
+    POKEAPI_MAX_WORKERS,
+    POKEAPI_TIMEOUT,
+)
 from mcp_server.src.infrastructure.pokeapi import PokemonMovesFetcher
 
 ATTACK = "attack"
@@ -22,8 +26,7 @@ class FetchesPokemonMoves(Protocol):
         self,
         pokemon: str | int,
         max_workers: int = POKEAPI_MAX_WORKERS,
-    ) -> dict[str, Any]:
-        ...
+    ) -> dict[str, Any]: ...
 
 
 def stat_value(stats: dict[str, int | None], stat_name: str) -> int:

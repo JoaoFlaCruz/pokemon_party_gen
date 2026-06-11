@@ -7,7 +7,9 @@ from typing import Any
 
 from mcp_server.src.infrastructure.pokeapi.pokemon_fetcher import PokemonFetcher
 from mcp_server.src.infrastructure.pokeapi.item_fetcher import ItemFetcher
-from mcp_server.src.infrastructure.pokeapi.type_relations_fetcher import TypeRelationsFetcher
+from mcp_server.src.infrastructure.pokeapi.type_relations_fetcher import (
+    TypeRelationsFetcher,
+)
 
 
 class FakePokemonFetcher(PokemonFetcher):
@@ -42,7 +44,9 @@ class PokemonFetcherTests(unittest.TestCase):
         result = fetcher._fetch_pokemon_summary("rayquaza")
 
         self.assertIsNone(result)
-        self.assertEqual(fetcher.calls, ["pokemon/rayquaza/", "pokemon-species/rayquaza/"])
+        self.assertEqual(
+            fetcher.calls, ["pokemon/rayquaza/", "pokemon-species/rayquaza/"]
+        )
 
     def test_fetch_pokemon_summary_enriches_mega_metadata_and_item(self) -> None:
         fetcher = FakePokemonFetcher(
@@ -119,7 +123,9 @@ class PokemonFetcherTests(unittest.TestCase):
         )
 
     def test_mega_item_name_handles_x_and_y_suffixes(self) -> None:
-        self.assertEqual(PokemonFetcher._mega_item_name("charizard-mega-x"), "charizardite-x")
+        self.assertEqual(
+            PokemonFetcher._mega_item_name("charizard-mega-x"), "charizardite-x"
+        )
         self.assertEqual(PokemonFetcher._mega_item_name("mewtwo-mega-y"), "mewtwoite-y")
 
 
@@ -258,7 +264,9 @@ class TypeRelationsFetcherTests(unittest.TestCase):
 
         self.assertEqual(fetcher.calls, ["type/fire/"])
         self.assertEqual(result["type"], {"id": 10, "name": "fire"})
-        self.assertEqual(result["offensive"]["super_effective_against"], ["grass", "ice"])
+        self.assertEqual(
+            result["offensive"]["super_effective_against"], ["grass", "ice"]
+        )
         self.assertEqual(result["offensive"]["weak_against"], ["water"])
         self.assertEqual(result["offensive"]["no_effect_against"], [])
         self.assertEqual(result["defensive"]["weak_to"], ["water", "rock"])

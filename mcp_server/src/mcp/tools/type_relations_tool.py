@@ -39,7 +39,9 @@ def execute_type_relations_tool(
 ) -> dict[str, Any]:
     """Execute the type relations tool with AI-provided arguments."""
     pokemon_type = arguments.get("type")
-    if pokemon_type is None or (isinstance(pokemon_type, str) and not pokemon_type.strip()):
+    if pokemon_type is None or (
+        isinstance(pokemon_type, str) and not pokemon_type.strip()
+    ):
         raise ValueError("Informe o nome ou ID do tipo em 'type'.")
 
     selected_fetcher = fetcher or default_fetcher
@@ -84,7 +86,9 @@ def format_type_list(types: list[str] | None) -> str:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Execute the Pokemon type relations AI tool.")
+    parser = argparse.ArgumentParser(
+        description="Execute the Pokemon type relations AI tool."
+    )
     parser.add_argument("type", help="Type name or id, such as fire or 10.")
     args = parser.parse_args()
 

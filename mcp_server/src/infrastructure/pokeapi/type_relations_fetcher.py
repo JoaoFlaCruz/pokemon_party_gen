@@ -102,7 +102,9 @@ class TypeRelationsFetcher:
             with urlopen(request, timeout=self.timeout) as response:
                 return json.loads(response.read().decode("utf-8"))
         except HTTPError as exc:
-            raise RuntimeError(f"API request failed with HTTP {exc.code}: {url}") from exc
+            raise RuntimeError(
+                f"API request failed with HTTP {exc.code}: {url}"
+            ) from exc
         except URLError as exc:
             raise RuntimeError(f"API request failed: {url}") from exc
 
