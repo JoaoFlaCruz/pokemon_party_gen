@@ -13,8 +13,9 @@ ranking Pokemon and moves, and exposing the functionality through MCP tools.
 - `mcp_server/tests/mcp/tools/`: unit tests for tool wrappers and MCP behavior.
 - `mcp_server/tests/infrastructure/pokeapi/`: unit tests for fetcher data assembly without real HTTP.
 - `mcp_server/tests/manual/`: manual checks against a running local PokeAPI.
-- `docs/arquitetura.md`: architecture, contracts, flow, tools, and test notes.
-- `docs/padrao-agentico-times.md`: rules for assembling 6-Pokemon teams.
+- `docs/architecture.md`: architecture, contracts, flow, tools, and test notes.
+- `docs/agentic-team-pattern.md`: rules for assembling six-Pokemon teams.
+- `docs/agentic-team-flow.md`: agentic workflow and reflection decisions for multi-step team assembly.
 - `pokeapi/`: local PokeAPI source used as a compatible API reference/runtime.
 
 ## Build, Test, and Development Commands
@@ -24,10 +25,10 @@ There is no separate build step for the Python utilities.
 - `python3 -m unittest mcp_server.tests.application.use_cases.test_rankings mcp_server.tests.mcp.tools.test_tools mcp_server.tests.infrastructure.pokeapi.test_fetchers`: run unit tests.
 - `python3 -m unittest mcp_server.tests.manual.test_fetch_calls`: run manual fetch checks only when a local PokeAPI is active and populated.
 - `rg "identifier" src docs`: search project code and documentation.
-- `sed -n '1,200p' docs/arquitetura.md`: inspect architecture documentation.
+- `sed -n '1,200p' docs/architecture.md`: inspect architecture documentation.
 
 The default API base URL is `http://localhost/api/v2/`. Configure runtime behavior
-through `.env` or the environment variables documented in `docs/arquitetura.md`.
+through `.env` or the environment variables documented in `docs/architecture.md`.
 
 ## Coding Style & Naming Conventions
 
@@ -57,7 +58,7 @@ with tests that do not require real HTTP.
 ## Documentation Guidelines
 
 Any new implementation or behavior change must update project documentation.
-Update `docs/arquitetura.md` when changing:
+Update `docs/architecture.md` when changing:
 
 - folder or module structure;
 - input or output contracts;
@@ -68,7 +69,7 @@ Update `docs/arquitetura.md` when changing:
 - external dependencies;
 - data flow between layers.
 
-Update `docs/padrao-agentico-times.md` when changing team-building rules,
+Update `docs/agentic-team-pattern.md` when changing team-building rules,
 response format for teams, suggested roles, or AI Pokemon selection criteria.
 
 If a change is small and does not alter behavior or architecture, state in the
@@ -85,8 +86,24 @@ manual PokeAPI checks or uncertain data.
 
 Do not invent Pokemon data. Use the project tools or a PokeAPI-compatible source
 when real Pokemon data is needed. For requests to assemble a team of 6 Pokemon,
-follow `docs/padrao-agentico-times.md`, preserve user-selected Pokemon as fixed
-members, and clearly distinguish user choices from AI-selected additions.
+follow `docs/agentic-team-pattern.md`; for multi-step team assembly, also follow
+`docs/agentic-team-flow.md` and its reflection decisions. Preserve user-selected
+Pokemon as fixed members, and clearly distinguish user choices from AI-selected
+additions.
+
+Use the local OpenSpec skills in `.codex/skills/` naturally when the user's
+intent matches an OpenSpec workflow, even if the user does not name the skill:
+
+- Use `openspec-explore` for exploratory discussion, requirement discovery,
+  problem investigation, or comparing possible approaches before a change.
+- Use `openspec-propose` when the user asks to define, specify, plan, or propose
+  a new change.
+- Use `openspec-apply-change` when the user asks to implement, continue, or work
+  through an existing OpenSpec change.
+- Use `openspec-sync-specs` when the user asks to sync delta specs into the main
+  specs without archiving.
+- Use `openspec-archive-change` when the user asks to finalize, complete, or
+  archive an implemented OpenSpec change.
 
 When adding a tool, register its schema, executor, MCP dispatch, presentation, and
 tests. When adding a fetcher, export it from `mcp_server/src/infrastructure/pokeapi/__init__.py`. Keep changes
