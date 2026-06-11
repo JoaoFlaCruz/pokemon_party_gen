@@ -135,6 +135,7 @@ def format_team_presentation(data: dict[str, Any]) -> str:
     lines = [
         f"Time Pokemon: {'completo' if data.get('is_complete') else 'parcial'}",
         f"Tamanho alvo: {data.get('team_size')}",
+        f"Escopo AI: {data.get('selection_scope', {}).get('ai_candidates', 'pokemon-champions')}",
         f"Trio principal - estrategia={structure.get('primary_trio_strategy')}",
     ]
 
@@ -149,7 +150,8 @@ def format_team_presentation(data: dict[str, Any]) -> str:
             f"{index}. {member.get('name')} "
             f"source={member.get('source')} "
             f"locked={str(member.get('locked')).lower()} "
-            f"role={member.get('role')}"
+            f"role={member.get('role')} "
+            f"champions_dex={member.get('champions_dex', 'desconhecido')}"
         )
         lines.append(f"  Motivo: {member.get('reason')}")
         if member.get("replaces_gap"):

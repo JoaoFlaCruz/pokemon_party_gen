@@ -5,9 +5,78 @@ from __future__ import annotations
 import unittest
 from typing import Any
 
+from mcp_server.src.infrastructure.pokeapi.champions_dex_fetcher import (
+    ChampionsDexFetcher,
+    champions_species_from_payload,
+)
 from mcp_server.src.infrastructure.pokeapi.pokemon_fetcher import PokemonFetcher
 from mcp_server.src.infrastructure.pokeapi.item_fetcher import ItemFetcher
 from mcp_server.src.infrastructure.pokeapi.type_relations_fetcher import TypeRelationsFetcher
+
+
+class FakeChampionsDexFetcher(ChampionsDexFetcher):
+    def __init__(self, payloads: dict[str, dict[str, Any]]) -> None:
+        super().__init__()
+        self.payloads = payloads
+        self.calls: list[str] = []
+
+    def _get_json(self, path: str) -> dict[str, Any]:
+        self.calls.append(path)
+        payload = self.payloads[path]
+        if "error" in payload:
+            raise RuntimeError(payload["error"])
+        return payload
+
+
+class ChampionsDexFetcherTests(unittest.TestCase):
+    def test_extracts_normalized_species_from_pokedex_payload(self) -> None:
+        result = champions_species_from_payload(
+            {
+                "pokemon_entries": [
+                    {"pokemon_species": {"name": " Venusaur "}},
+                    {"pokemon_species": {"name": "charizard"}},
+                    {"pokemon_species": {}},
+                ]
+            }
+        )
+
+        self.assertEqual(result, {"venusaur", "charizard"})
+
+    def test_fetches_champions_by_identifier(self) -> None:
+        fetcher = FakeChampionsDexFetcher(
+            {
+                "pokedex/champions/": {
+                    "pokemon_entries": [{"pokemon_species": {"name": "venusaur"}}]
+                }
+            }
+        )
+
+        self.assertEqual(fetcher.fetch_champions_species(), {"venusaur"})
+        self.assertEqual(fetcher.calls, ["pokedex/champions/"])
+
+    def test_falls_back_to_numeric_champions_pokedex_id(self) -> None:
+        fetcher = FakeChampionsDexFetcher(
+            {
+                "pokedex/champions/": {"error": "missing"},
+                "pokedex/36/": {
+                    "pokemon_entries": [{"pokemon_species": {"name": "pikachu"}}]
+                },
+            }
+        )
+
+        self.assertEqual(fetcher.fetch_champions_species(), {"pikachu"})
+        self.assertEqual(fetcher.calls, ["pokedex/champions/", "pokedex/36/"])
+
+    def test_reports_failure_when_champions_membership_is_unavailable(self) -> None:
+        fetcher = FakeChampionsDexFetcher(
+            {
+                "pokedex/champions/": {"error": "missing"},
+                "pokedex/36/": {"error": "offline"},
+            }
+        )
+
+        with self.assertRaises(RuntimeError):
+            fetcher.fetch_champions_species()
 
 
 class FakePokemonFetcher(PokemonFetcher):
@@ -117,6 +186,40 @@ class PokemonFetcherTests(unittest.TestCase):
                 "pokemon-form/aegislash-blade/",
             ],
         )
+
+
+    def test_fetch_pokemon_filters_champions_candidates_by_allowed_species(self) -> None:
+        fetcher = FakePokemonFetcher(
+            {
+                "pokemon/?limit=100000&offset=0": {
+                    "results": [
+                        {"name": "venusaur"},
+                        {"name": "charizard"},
+                    ]
+                },
+                "pokemon/venusaur/": {
+                    "id": 3,
+                    "name": "venusaur",
+                    "species": {"name": "venusaur"},
+                    "forms": [{"name": "venusaur"}],
+                    "stats": [{"stat": {"name": "hp"}, "base_stat": 80}],
+                },
+                "pokemon-species/venusaur/": {
+                    "is_legendary": False,
+                    "is_mythical": False,
+                },
+                "pokemon-form/venusaur/": {
+                    "is_mega": False,
+                    "is_battle_only": False,
+                },
+            }
+        )
+
+        result = fetcher.fetch_pokemon(allowed_species={"venusaur"}, max_workers=1)
+
+        self.assertEqual([pokemon["name"] for pokemon in result], ["venusaur"])
+        self.assertTrue(result[0]["champions_dex"])
+        self.assertNotIn("pokemon/charizard/", fetcher.calls)
 
     def test_mega_item_name_handles_x_and_y_suffixes(self) -> None:
         self.assertEqual(PokemonFetcher._mega_item_name("charizard-mega-x"), "charizardite-x")

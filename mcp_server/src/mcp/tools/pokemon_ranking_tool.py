@@ -64,6 +64,13 @@ POKEMON_RANKING_TOOL = {
                         "high prioriza Pokemon rapidos e low prioriza Pokemon lentos."
                     ),
                 },
+                "champions_only": {
+                    "type": "boolean",
+                    "description": (
+                        "Quando true, limita candidatos a especies presentes "
+                        "na Pokedex Pokemon Champions. Padrao: true."
+                    ),
+                },
                 "head_size": {
                     "type": "integer",
                     "minimum": 1,
@@ -76,7 +83,7 @@ POKEMON_RANKING_TOOL = {
 }
 
 RankPokemonCallable = Callable[
-    [list[str] | None, str, str | None, str, int],
+    [list[str] | None, str, str | None, str, int, bool],
     list[dict[str, Any]],
 ]
 
@@ -107,12 +114,23 @@ def execute_pokemon_ranking_tool(
     if speed_mode not in SPEED_MODE_CHOICES:
         raise ValueError("speed_mode deve ser ignore, high ou low.")
 
+    champions_only = arguments.get("champions_only", True)
+    if not isinstance(champions_only, bool):
+        raise ValueError("'champions_only' deve ser booleano.")
+
     head_size = arguments.get("head_size", 10)
     if not isinstance(head_size, int) or head_size < 1:
         raise ValueError("'head_size' deve ser um inteiro maior que zero.")
 
     selected_ranker = ranker or default_ranker
-    result = selected_ranker(types, offense_stat, priority_stat, speed_mode, head_size)
+    result = selected_ranker(
+        types,
+        offense_stat,
+        priority_stat,
+        speed_mode,
+        head_size,
+        champions_only,
+    )
     result = filter_banned_pokemon(result, banned_db_path)
     return {
         "tool_name": POKEMON_RANKING_TOOL["function"]["name"],
@@ -122,6 +140,7 @@ def execute_pokemon_ranking_tool(
             "priority_stat": priority_stat,
             "speed_mode": speed_mode,
             "head_size": head_size,
+            "champions_only": champions_only,
         },
         "data": result,
         "presentation": format_pokemon_ranking_presentation(
@@ -130,6 +149,7 @@ def execute_pokemon_ranking_tool(
             offense_stat=offense_stat,
             priority_stat=priority_stat,
             speed_mode=speed_mode,
+            champions_only=champions_only,
         ),
     }
 
@@ -202,6 +222,7 @@ def default_ranker(
     priority_stat: str | None,
     speed_mode: str,
     head_size: int,
+    champions_only: bool,
 ) -> list[dict[str, Any]]:
     fetcher = PokemonFetcher()
     return rank_pokemon(
@@ -211,6 +232,7 @@ def default_ranker(
         priority_stat=priority_stat,
         speed_mode=speed_mode,
         head_size=head_size,
+        champions_only=champions_only,
     )
 
 
@@ -220,6 +242,7 @@ def format_pokemon_ranking_presentation(
     offense_stat: str,
     priority_stat: str | None,
     speed_mode: str,
+    champions_only: bool,
 ) -> str:
     """Build a concise text response suitable for an AI assistant."""
     filters = ", ".join(types) if types else "todos"
@@ -228,6 +251,7 @@ def format_pokemon_ranking_presentation(
         f"Atributo ofensivo solicitado: {offense_stat}",
         f"Atributo priorizado: {priority_stat or 'nenhum'}",
         f"Modo de velocidade: {speed_mode}",
+        f"Escopo Champions: {'ativado' if champions_only else 'desativado'}",
         "Melhores Pokemon:",
     ]
 
@@ -265,6 +289,7 @@ def main() -> None:
     parser.add_argument("--priority-stat", choices=PRIORITY_STAT_CHOICES, default=None)
     parser.add_argument("--speed-mode", choices=SPEED_MODE_CHOICES, default=SPEED_IGNORE)
     parser.add_argument("--head-size", type=int, default=10)
+    parser.add_argument("--all-pokemon", action="store_true")
     parser.add_argument("--max-workers", type=int, default=POKEAPI_MAX_WORKERS)
     parser.add_argument("--banned-db-path", default=BANNED_POKEMON_DB_PATH)
     args = parser.parse_args()
@@ -275,6 +300,7 @@ def main() -> None:
         priority_stat: str | None,
         speed_mode: str,
         head_size: int,
+        champions_only: bool,
     ) -> list[dict[str, Any]]:
         fetcher = PokemonFetcher()
         return rank_pokemon(
@@ -284,6 +310,7 @@ def main() -> None:
             priority_stat=priority_stat,
             speed_mode=speed_mode,
             head_size=head_size,
+            champions_only=champions_only,
             max_workers=args.max_workers,
         )
 
@@ -294,6 +321,7 @@ def main() -> None:
             "priority_stat": args.priority_stat,
             "speed_mode": args.speed_mode,
             "head_size": args.head_size,
+            "champions_only": not args.all_pokemon,
         },
         ranker=ranker,
         banned_db_path=args.banned_db_path,

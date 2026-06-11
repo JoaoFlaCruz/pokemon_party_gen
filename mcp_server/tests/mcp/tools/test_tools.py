@@ -240,6 +240,7 @@ class PokemonRankingToolTests(unittest.TestCase):
         self.assertIn("priority_stat", function["parameters"]["properties"])
         self.assertIn("speed_mode", function["parameters"]["properties"])
         self.assertIn("head_size", function["parameters"]["properties"])
+        self.assertIn("champions_only", function["parameters"]["properties"])
 
     def test_execute_tool_returns_data_and_presentation(self) -> None:
         result = execute_pokemon_ranking_tool(
@@ -262,11 +263,13 @@ class PokemonRankingToolTests(unittest.TestCase):
                 "priority_stat": "special-defense",
                 "speed_mode": "high",
                 "head_size": 1,
+                "champions_only": True,
             },
         )
         self.assertEqual(result["data"][0]["name"], "venusaur")
         self.assertIn("Filtro de tipos: grass, poison", result["presentation"])
         self.assertIn("#1 venusaur", result["presentation"])
+        self.assertIn("Escopo Champions: ativado", result["presentation"])
         self.assertNotIn("mega_item=", result["presentation"])
 
     def test_execute_tool_filters_banned_pokemon_from_sqlite(self) -> None:
@@ -312,6 +315,9 @@ class PokemonRankingToolTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             execute_pokemon_ranking_tool({"head_size": 0}, ranker=self.fake_ranker)
 
+        with self.assertRaises(ValueError):
+            execute_pokemon_ranking_tool({"champions_only": "yes"}, ranker=self.fake_ranker)
+
     @staticmethod
     def fake_ranker(
         types: list[str] | None,
@@ -319,6 +325,7 @@ class PokemonRankingToolTests(unittest.TestCase):
         priority_stat: str | None,
         speed_mode: str,
         head_size: int,
+        champions_only: bool,
     ) -> list[dict[str, Any]]:
         return [
             {
@@ -346,6 +353,7 @@ class PokemonRankingToolTests(unittest.TestCase):
                     "special-attack": 100,
                     "speed": 80 if speed_mode != "ignore" else None,
                 },
+                "champions_dex": True,
                 "stats": {
                     "hp": 80,
                     "attack": 82,
@@ -364,6 +372,7 @@ class PokemonRankingToolTests(unittest.TestCase):
         priority_stat: str | None,
         speed_mode: str,
         head_size: int,
+        champions_only: bool,
     ) -> list[dict[str, Any]]:
         return [
             make_ranked_pokemon(3, "venusaur", priority_stat, speed_mode),
@@ -486,6 +495,7 @@ class TeamBuilderToolTests(unittest.TestCase):
         self.assertEqual(result["input"]["aces"], ["pikachu"])
         self.assertEqual(result["data"]["team"][0]["name"], "pikachu")
         self.assertIn("Time Pokemon: completo", result["presentation"])
+        self.assertIn("Escopo AI: pokemon-champions", result["presentation"])
         self.assertIn("source=user", result["presentation"])
 
     def test_execute_tool_validates_arguments(self) -> None:
@@ -512,6 +522,7 @@ class TeamBuilderToolTests(unittest.TestCase):
             "team_size": 6,
             "is_complete": True,
             "user_requested": pokemon or [],
+            "selection_scope": {"ai_candidates": "pokemon-champions", "source": "pokedex/champions"},
             "team_structure": {
                 "primary_trio_strategy": primary_strategy or "balanced",
                 "complementary_trio_strategy": complementary_strategy or "coverage",
@@ -525,6 +536,7 @@ class TeamBuilderToolTests(unittest.TestCase):
                     "trio": "primary",
                     "reason": "Escolha informada pelo usuario.",
                     "notes": [],
+                    "champions_dex": True,
                 },
                 {
                     "name": "charizard",
@@ -535,6 +547,7 @@ class TeamBuilderToolTests(unittest.TestCase):
                     "reason": "Selecionado entre candidatos validados pelo ranking.",
                     "replaces_gap": "suporte do trio principal",
                     "notes": [],
+                    "champions_dex": True,
                 },
             ],
             "analysis": {

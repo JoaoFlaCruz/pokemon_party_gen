@@ -5,7 +5,11 @@ from __future__ import annotations
 from typing import Any, Callable, Protocol
 
 from mcp_server.src.application.use_cases.rank_pokemon import rank_pokemon
-from mcp_server.src.infrastructure.pokeapi import PokemonFetcher, PokemonMovesFetcher
+from mcp_server.src.infrastructure.pokeapi import (
+    ChampionsDexFetcher,
+    PokemonFetcher,
+    PokemonMovesFetcher,
+)
 
 TEAM_SIZE = 6
 TRIO_SIZE = 3
@@ -25,6 +29,11 @@ class RanksCandidates(Protocol):
         ...
 
 
+class ChecksChampionsMembership(Protocol):
+    def __call__(self, details: dict[str, Any]) -> bool | None:
+        ...
+
+
 def build_pokemon_team(
     pokemon: list[str | int] | None = None,
     primary_strategy: str | None = None,
@@ -32,6 +41,7 @@ def build_pokemon_team(
     aces: list[str | int] | None = None,
     pokemon_lookup: LooksUpPokemon | None = None,
     candidate_ranker: RanksCandidates | None = None,
+    champions_membership_checker: ChecksChampionsMembership | None = None,
 ) -> dict[str, Any]:
     """Build a structured team response using validated data only."""
     normalized_pokemon, pending = normalize_selected_pokemon(pokemon)
@@ -40,6 +50,7 @@ def build_pokemon_team(
 
     lookup = pokemon_lookup or default_pokemon_lookup
     ranker = candidate_ranker or default_candidate_ranker
+    membership_checker = champions_membership_checker
     members: list[dict[str, Any]] = []
 
     for requested in normalized_pokemon:
@@ -55,14 +66,17 @@ def build_pokemon_team(
             )
             continue
 
-        members.append(
-            make_member(
-                details,
-                source="user",
-                locked=True,
-                reason="Escolha informada pelo usuario.",
-            )
+        if membership_checker is None:
+            membership_checker = default_champions_membership_checker()
+
+        member = make_member(
+            details,
+            source="user",
+            locked=True,
+            reason="Escolha informada pelo usuario.",
         )
+        apply_champions_membership(member, details, membership_checker, pending)
+        members.append(member)
 
     if len(members) < TEAM_SIZE:
         try:
@@ -117,6 +131,10 @@ def build_pokemon_team(
         "is_complete": len(members) == TEAM_SIZE,
         "user_requested": [str(item).strip().lower() for item in normalized_pokemon],
         "team_structure": structure,
+        "selection_scope": {
+            "ai_candidates": "pokemon-champions",
+            "source": "pokedex/champions",
+        },
         "team": members,
         "analysis": build_analysis(members, structure),
         "pending": pending,
@@ -220,7 +238,22 @@ def default_pokemon_lookup(pokemon: str | int) -> dict[str, Any]:
 
 
 def default_candidate_ranker(head_size: int) -> list[dict[str, Any]]:
-    return rank_pokemon(PokemonFetcher(), head_size=head_size)
+    return rank_pokemon(PokemonFetcher(), head_size=head_size, champions_only=True)
+
+
+def default_champions_membership_checker() -> ChecksChampionsMembership:
+    try:
+        champions_species = ChampionsDexFetcher().fetch_champions_species()
+    except RuntimeError as exc:
+        def unavailable(_details: dict[str, Any]) -> bool | None:
+            raise RuntimeError(str(exc))
+
+        return unavailable
+
+    def checker(details: dict[str, Any]) -> bool | None:
+        return pokemon_species_name(details) in champions_species
+
+    return checker
 
 
 def make_member(
@@ -244,9 +277,50 @@ def make_member(
         member["id"] = details["id"]
     if details.get("stats"):
         member["stats"] = details["stats"]
+    if "champions_dex" in details:
+        member["champions_dex"] = details["champions_dex"]
     if source == "ai":
+        member["champions_dex"] = details.get("champions_dex", True)
         member["replaces_gap"] = replaces_gap or "completar vaga validada no time"
     return member
+
+
+def apply_champions_membership(
+    member: dict[str, Any],
+    details: dict[str, Any],
+    membership_checker: ChecksChampionsMembership,
+    pending: list[dict[str, Any]],
+) -> None:
+    try:
+        membership = membership_checker(details)
+    except Exception as exc:
+        pending.append(
+            pending_issue(
+                "champions-dex-data-unavailable",
+                member.get("name"),
+                f"Nao foi possivel validar a Pokedex Champions: {exc}",
+            )
+        )
+        return
+
+    if membership is None:
+        return
+
+    member["champions_dex"] = membership
+    if membership is False:
+        pending.append(
+            pending_issue(
+                "user-pokemon-outside-champions-dex",
+                member.get("name"),
+                "Pokemon informado pelo usuario foi preservado, mas nao consta na Pokedex Champions.",
+            )
+        )
+
+
+def pokemon_species_name(details: dict[str, Any]) -> str:
+    species = details.get("species") or {}
+    species_name = species.get("name") if isinstance(species, dict) else None
+    return str(species_name or details.get("name") or "").strip().lower()
 
 
 def add_candidates(
@@ -372,6 +446,6 @@ def build_analysis(
         "selection_criteria": [
             "Preservar escolhas do usuario.",
             "Evitar Pokemon duplicados.",
-            "Preencher vagas restantes com candidatos validados em ordem deterministica.",
+            "Preencher vagas restantes com candidatos validados da Pokedex Pokemon Champions em ordem deterministica.",
         ],
     }

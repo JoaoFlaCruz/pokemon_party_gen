@@ -19,6 +19,8 @@ class FakePokemonFetcher:
         types: list[str] | tuple[str, ...] | None = None,
         ability: str | None = None,
         move: str | None = None,
+        champions_only: bool = False,
+        allowed_species: set[str] | None = None,
         max_workers: int = 12,
     ) -> list[dict[str, Any]]:
         self.calls.append(
@@ -26,6 +28,8 @@ class FakePokemonFetcher:
                 "types": types,
                 "ability": ability,
                 "move": move,
+                "champions_only": champions_only,
+                "allowed_species": allowed_species,
                 "max_workers": max_workers,
             }
         )
@@ -103,6 +107,38 @@ class RankPokemonTests(unittest.TestCase):
         self.assertEqual([item["score"] for item in result], [390, 390])
         self.assertEqual(fetcher.calls[0]["types"], ["grass", "poison"])
         self.assertEqual(fetcher.calls[0]["max_workers"], 3)
+
+
+    def test_rank_can_request_champions_scope(self) -> None:
+        fetcher = FakePokemonFetcher(
+            [
+                {
+                    "name": "venusaur",
+                    "champions_dex": True,
+                    "species": {"name": "venusaur"},
+                    "stats": {
+                        "hp": 80,
+                        "attack": 82,
+                        "defense": 83,
+                        "special-attack": 100,
+                        "special-defense": 100,
+                        "speed": 80,
+                    },
+                }
+            ]
+        )
+
+        result = rank_pokemon(
+            fetcher,
+            champions_only=True,
+            allowed_species={"venusaur"},
+            head_size=1,
+        )
+
+        self.assertEqual(result[0]["name"], "venusaur")
+        self.assertTrue(result[0]["champions_dex"])
+        self.assertTrue(fetcher.calls[0]["champions_only"])
+        self.assertEqual(fetcher.calls[0]["allowed_species"], {"venusaur"})
 
     def test_score_preserves_mega_metadata(self) -> None:
         result = score_pokemon(

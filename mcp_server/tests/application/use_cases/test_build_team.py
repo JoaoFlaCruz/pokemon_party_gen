@@ -13,6 +13,7 @@ class BuildPokemonTeamTests(unittest.TestCase):
         result = build_pokemon_team(
             pokemon_lookup=self.fake_lookup,
             candidate_ranker=self.fake_ranker,
+            champions_membership_checker=self.fake_champions_membership,
         )
 
         self.assertTrue(result["is_complete"])
@@ -37,6 +38,7 @@ class BuildPokemonTeamTests(unittest.TestCase):
             ],
             pokemon_lookup=self.fake_lookup,
             candidate_ranker=self.fake_ranker,
+            champions_membership_checker=self.fake_champions_membership,
         )
 
         self.assertEqual(
@@ -53,6 +55,7 @@ class BuildPokemonTeamTests(unittest.TestCase):
             pokemon=["missingno", "pikachu"],
             pokemon_lookup=self.fake_lookup,
             candidate_ranker=self.fake_ranker,
+            champions_membership_checker=self.fake_champions_membership,
         )
 
         self.assertTrue(result["is_complete"])
@@ -68,6 +71,7 @@ class BuildPokemonTeamTests(unittest.TestCase):
             pokemon=["pikachu"],
             pokemon_lookup=self.fake_lookup,
             candidate_ranker=broken_ranker,
+            champions_membership_checker=self.fake_champions_membership,
         )
 
         self.assertFalse(result["is_complete"])
@@ -83,6 +87,7 @@ class BuildPokemonTeamTests(unittest.TestCase):
             complementary_strategy="wallbreak",
             pokemon_lookup=self.fake_lookup,
             candidate_ranker=self.fake_ranker,
+            champions_membership_checker=self.fake_champions_membership,
         )
 
         self.assertEqual(result["team"][0]["name"], "charizard")
@@ -96,6 +101,36 @@ class BuildPokemonTeamTests(unittest.TestCase):
         ai_members = [member for member in result["team"] if member["source"] == "ai"]
         self.assertTrue(all(member.get("replaces_gap") for member in ai_members))
 
+
+    def test_preserves_user_pokemon_outside_champions_with_pending_issue(self) -> None:
+        result = build_pokemon_team(
+            pokemon=["missing-from-champions"],
+            pokemon_lookup=self.fake_lookup,
+            candidate_ranker=self.fake_ranker,
+            champions_membership_checker=self.fake_champions_membership,
+        )
+
+        self.assertEqual(result["team"][0]["name"], "missing-from-champions")
+        self.assertTrue(result["team"][0]["locked"])
+        self.assertFalse(result["team"][0]["champions_dex"])
+        self.assertIn(
+            "user-pokemon-outside-champions-dex",
+            [issue["type"] for issue in result["pending"]],
+        )
+
+    def test_ai_candidates_are_marked_as_champions_members(self) -> None:
+        result = build_pokemon_team(
+            pokemon=["pikachu"],
+            pokemon_lookup=self.fake_lookup,
+            candidate_ranker=self.fake_ranker,
+            champions_membership_checker=self.fake_champions_membership,
+        )
+
+        ai_members = [member for member in result["team"] if member["source"] == "ai"]
+        self.assertTrue(ai_members)
+        self.assertTrue(all(member["champions_dex"] for member in ai_members))
+        self.assertEqual(result["selection_scope"]["ai_candidates"], "pokemon-champions")
+
     @staticmethod
     def fake_lookup(pokemon: str | int) -> dict[str, Any]:
         name = str(pokemon).strip().lower()
@@ -104,6 +139,7 @@ class BuildPokemonTeamTests(unittest.TestCase):
         return {
             "id": len(name),
             "name": name,
+            "species": {"name": name},
             "stats": stats_for(name),
         }
 
@@ -125,9 +161,14 @@ class BuildPokemonTeamTests(unittest.TestCase):
                 "name": name,
                 "stats": stats_for(name),
                 "score": 500 - index,
+                "champions_dex": True,
             }
             for index, name in enumerate(names[:head_size], start=1)
         ]
+
+    @staticmethod
+    def fake_champions_membership(details: dict[str, Any]) -> bool | None:
+        return str(details.get("name", "")).strip().lower() != "missing-from-champions"
 
 
 def stats_for(name: str) -> dict[str, int]:

@@ -12,6 +12,7 @@ from urllib.parse import quote, urljoin
 from urllib.request import Request, urlopen
 
 from mcp_server.src.config.env import POKEAPI_BASE_URL, POKEAPI_MAX_WORKERS, POKEAPI_TIMEOUT
+from mcp_server.src.infrastructure.pokeapi.champions_dex_fetcher import ChampionsDexFetcher
 
 
 @dataclass(frozen=True)
@@ -27,6 +28,7 @@ class PokemonSummary:
     is_battle_only: bool
     base_pokemon: str | None = None
     required_item: dict[str, Any] | None = None
+    champions_dex: bool | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -39,6 +41,7 @@ class PokemonSummary:
             "is_battle_only": self.is_battle_only,
             "base_pokemon": self.base_pokemon,
             "required_item": self.required_item,
+            "champions_dex": self.champions_dex,
         }
 
 
@@ -58,6 +61,8 @@ class PokemonFetcher:
         types: list[str] | tuple[str, ...] | None = None,
         ability: str | None = None,
         move: str | None = None,
+        champions_only: bool = False,
+        allowed_species: set[str] | None = None,
         max_workers: int = POKEAPI_MAX_WORKERS,
     ) -> list[dict[str, Any]]:
         """Return Pokemon with name and stats, filtered by type, ability, and move.
@@ -67,13 +72,27 @@ class PokemonFetcher:
                 ["water", "flying"]. When omitted or None, all types are accepted.
             ability: Optional ability identifier, such as "overgrow".
             move: Optional move/attack identifier, such as "thunder-punch".
+            champions_only: When true, restrict candidates to species listed in
+                the Pokemon Champions Pokédex.
+            allowed_species: Optional pre-fetched allowed species set. When
+                provided, it is used as the Champions membership source.
             max_workers: Number of parallel requests used for Pokemon detail calls.
         """
         normalized_types = self._normalize_types(types)
         candidate_names = self._candidate_names(normalized_types, ability, move)
+        champions_species = self._champions_species(champions_only, allowed_species)
+        if champions_species is not None:
+            candidate_names = {
+                name
+                for name in candidate_names
+                if self._candidate_matches_species(name, champions_species)
+            }
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            summaries = executor.map(self._fetch_pokemon_summary, sorted(candidate_names))
+            summaries = executor.map(
+                lambda name: self._fetch_pokemon_summary(name, champions_species),
+                sorted(candidate_names),
+            )
 
         return [summary.to_dict() for summary in summaries if summary is not None]
 
@@ -115,7 +134,11 @@ class PokemonFetcher:
         payload = self._get_json(f"move/{quote(move)}/")
         return {item["name"] for item in payload["learned_by_pokemon"]}
 
-    def _fetch_pokemon_summary(self, name: str) -> PokemonSummary | None:
+    def _fetch_pokemon_summary(
+        self,
+        name: str,
+        champions_species: set[str] | None = None,
+    ) -> PokemonSummary | None:
         payload = self._get_json(f"pokemon/{quote(name)}/")
         species_ref = payload.get("species") or {}
         species_name = species_ref.get("name")
@@ -128,6 +151,12 @@ class PokemonFetcher:
             return None
 
         is_mega = bool(form_payload.get("is_mega"))
+        champions_dex = None
+        if champions_species is not None:
+            champions_dex = str(species_name or "").strip().lower() in champions_species
+            if not champions_dex:
+                return None
+
         stats = {
             item["stat"]["name"]: item.get("base_stat")
             for item in payload.get("stats", [])
@@ -142,6 +171,7 @@ class PokemonFetcher:
             is_battle_only=bool(form_payload.get("is_battle_only")),
             base_pokemon=species_name if is_mega else None,
             required_item=self._mega_required_item(payload["name"]) if is_mega else None,
+            champions_dex=champions_dex,
         )
 
     def _fetch_species(self, species_name: str) -> dict[str, Any]:
@@ -208,6 +238,37 @@ class PokemonFetcher:
             raise ValueError("Use no máximo dois tipos por consulta.")
 
         return normalized
+
+    @staticmethod
+    def _normalize_species(species: set[str] | None) -> set[str] | None:
+        if species is None:
+            return None
+        return {item.strip().lower() for item in species if item and item.strip()}
+
+    def _champions_species(
+        self,
+        champions_only: bool,
+        allowed_species: set[str] | None,
+    ) -> set[str] | None:
+        normalized = self._normalize_species(allowed_species)
+        if normalized is not None:
+            return normalized
+        if not champions_only:
+            return None
+        return ChampionsDexFetcher(
+            base_url=self.base_url,
+            timeout=self.timeout,
+        ).fetch_champions_species()
+
+    @staticmethod
+    def _candidate_matches_species(name: str, species: set[str]) -> bool:
+        normalized = name.strip().lower()
+        if normalized in species:
+            return True
+        if "-mega" in normalized:
+            base = normalized.split("-mega", 1)[0]
+            return base in species
+        return False
 
 
 def main() -> None:

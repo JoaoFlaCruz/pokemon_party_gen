@@ -21,6 +21,7 @@ output: 6 structured Pokemon, with N fixed by the user and 6 - N selected by the
 - The two trios must be complementary in the complete team, while staying distinct enough to provide different competitive routes.
 - When the user provides only one ace or one strategy, the AI must preserve that ace as fixed and select a second ace with a different strategy for the complementary trio.
 - Pokemon chosen by the user are priority choices and must be preserved in the provided order.
+- Pokemon selected by the AI must come from the Pokemon Champions library when project tools provide candidate selection.
 - If the user provides more than six Pokemon, use only the first six and state that the limit was applied.
 - If the user repeats a Pokemon, keep only the first occurrence and complete the remaining slots.
 - Do not invent Pokemon, types, abilities, moves, stats, or items.
@@ -48,7 +49,7 @@ If a provided Pokemon cannot be found or validated, the AI must:
 
 ## AI Pokemon Selection
 
-Open slots must be filled by the AI until the team reaches six members.
+Open slots must be filled by the AI until the team reaches six members. AI-selected Pokemon must be selected from the Pokemon Champions library; if the library data is unavailable or too narrow to complete the team, report the pending issue instead of using unrestricted candidates silently.
 
 Each AI-selected Pokemon must include:
 
@@ -140,7 +141,8 @@ The response follows this document's general structure and includes:
 - `is_complete`: whether six validated members were selected;
 - `user_requested`: normalized Pokemon after duplicate handling and the six-Pokemon limit;
 - `team_structure`: strategies for the `primary` and `complementary` trios;
-- `team`: members with `name`, `source`, `locked`, `role`, `trio`, `reason`, `notes`, and, for AI choices, `replaces_gap`;
+- `selection_scope`: metadata showing that AI candidates are constrained to the Pokemon Champions library;
+- `team`: members with `name`, `source`, `locked`, `role`, `trio`, `reason`, `notes`, Champions membership when known, and, for AI choices, `replaces_gap`;
 - `analysis`: strengths, trio differences, complementarity, risks, and selection criteria;
 - `pending`: unresolved data, duplicates, applied limits, fetch failures, or insufficient candidates.
 
@@ -248,6 +250,7 @@ When another agent or system needs to consume the answer, use JSON:
 - Explain who the two aces are and what strategy each one leads.
 - Explain how the two trios are distinct and how they complement each other.
 - Clearly distinguish user choices from AI choices.
+- Clearly state when a preserved user choice is outside the Pokemon Champions library.
 - Do not present AI-selected Pokemon as if they were user choices.
 - If selection is random among equivalent candidates, state which criteria formed the candidate group.
 - Avoid responses that only list names; always include role and justification.

@@ -11,7 +11,7 @@ The minimum flow input is:
 - second ace or second strategy, when provided;
 - additional restrictions, when present, such as type, role, item, generation, or physical/special preference.
 
-Pokemon provided by the user are fixed members. The flow may validate, classify, and flag risks for those Pokemon, but it must not remove them without explicit confirmation. When the user provides only one ace, the flow must preserve it as the first ace and select a second ace with a distinct strategy to lead the complementary trio.
+Pokemon provided by the user are fixed members. The flow may validate, classify, and flag risks for those Pokemon, including whether they are outside the Pokemon Champions library, but it must not remove them without explicit confirmation. When the user provides only one ace, the flow must preserve it as the first ace and select a second ace with a distinct strategy to lead the complementary trio.
 
 ## Agent A: Data Collector
 
@@ -117,7 +117,7 @@ Expected output:
 
 Responsibilities:
 
-- list possible Pokemon for open slots;
+- list possible Pokemon from the Pokemon Champions library for open slots;
 - select a second ace when the user did not provide one;
 - select candidates based on the two trio strategies, gaps, and validated data;
 - operate in three modes:
@@ -127,7 +127,7 @@ Responsibilities:
 
 Guidelines:
 
-- use `rank_pokemon` to form groups of valid candidates;
+- use `rank_pokemon` to form groups of valid Pokemon Champions candidates;
 - use `rank_pokemon_moveset` when moves are relevant to confirm the candidate's role;
 - when equivalent candidates tie, state the tie-break criterion or that controlled random selection was used;
 - never present an AI-selected candidate as a user choice.
@@ -143,7 +143,7 @@ Expected output:
 
 ## Mapping To `build_pokemon_team`
 
-The `build_pokemon_team` tool condenses the A-E flow into deterministic orchestration for MCP usage. It performs initial validation for provided Pokemon, preserves user choices as fixed members, selects ranked candidates for open slots, separates members into two trios, and returns pending issues when data or candidates are missing.
+The `build_pokemon_team` tool condenses the A-E flow into deterministic orchestration for MCP usage. It performs initial validation for provided Pokemon, preserves user choices as fixed members, selects ranked Pokemon Champions candidates for open slots, separates members into two trios, and returns pending issues when data, Champions membership, or candidates are missing.
 
 Treat that result as a traceable base for the agents. Agent A can still fetch additional move, item, and type data; Agent C can validate rules and cohesion; Agent D can audit weaknesses. The first version of the tool does not finalize held items, complete competitive movesets, or controlled randomness.
 
@@ -198,7 +198,7 @@ Use these decisions:
 
 Reflection checkpoints:
 
-1. After the initial `build_pokemon_team` result, check completion, preserved user choices, trio structure, ace distinction, pending issues, and whether the user's request justifies additional calls.
+1. After the initial `build_pokemon_team` result, check completion, preserved user choices, Champions-scope pending issues, trio structure, ace distinction, pending issues, and whether the user's request justifies additional calls.
 2. After Agent C validates strategy, choose whether to proceed, refine the candidate set, ask the user, or stop with pending issues.
 3. After Agent D audits balance, distinguish acceptable risk from a blocker that deserves one focused correction.
 4. Before the final response, confirm the answer satisfies the user request and declare relevant risks, uncertainty, or unresolved data.

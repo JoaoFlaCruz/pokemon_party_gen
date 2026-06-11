@@ -32,6 +32,7 @@ mcp_server/
             services/
         infrastructure/
             pokeapi/
+                champions_dex_fetcher.py
                 pokemon_fetcher.py
                 pokemon_moves_fetcher.py
                 item_fetcher.py
@@ -103,13 +104,15 @@ After that, PokeAPI is available on the host at `http://localhost:8000/api/v2/` 
 
 `mcp_server/src/infrastructure/pokeapi/` contains the HTTP clients. This layer knows the external API and returns structured data to the business rules.
 
+`ChampionsDexFetcher` fetches the Pokemon Champions library membership from `pokedex/champions/`, falling back to `pokedex/36/` for PokeAPI-compatible servers that only resolve the numeric Pokédex id. It reads `pokemon_entries[].pokemon_species.name` and returns a normalized species-name set. This keeps Champions membership data-backed by the configured PokeAPI source instead of a hard-coded list.
+
 `PokemonFetcher` fetches Pokemon and their stats. It also calls `pokemon-species/{name}` to exclude legendary species from ranking and `pokemon-form/{name}` to exclude forms marked as `is_battle_only=true`, which represent temporary or battle-restricted forms and should not be selected as resolved PvP team members. Accepted Pokemon include `is_battle_only=false` and preserve `is_mega`, `base_pokemon`, and `required_item` when those metadata exist and the item can be validated through `item/{name}`. It accepts filters by:
 
 - type, up to two types;
 - ability;
 - learned move.
 
-When filters are combined, the result is the intersection of Pokemon found by each filter. Pokemon details are then fetched in parallel with `ThreadPoolExecutor`.
+When filters are combined, the result is the intersection of Pokemon found by each filter. When Champions scope is enabled, the candidate pool is also intersected with species from the Champions Pokédex before details are fetched, and returned summaries include `champions_dex` membership metadata. Pokemon details are then fetched in parallel with `ThreadPoolExecutor`.
 
 `PokemonMovesFetcher` fetches one Pokemon by name or ID and enriches each learned move with details from `move/{name}/`. Move details are also fetched in parallel.
 
@@ -121,7 +124,7 @@ When filters are combined, the result is the intersection of Pokemon found by ea
 
 `mcp_server/src/application/use_cases/` contains ranking logic, deterministic team-building logic, and CLI entry points when a module has one.
 
-`build_team.py` builds a structured response for six-Pokemon teams from user choices, optional strategies, and ranked candidates. It normalizes input, removes duplicates while preserving the first occurrence, applies the six-user-choice limit, validates Pokemon through an injectable PokeAPI-compatible source, and completes remaining slots with ranked candidates deterministically. The response includes `team_size`, `is_complete`, `user_requested`, `team_structure`, `team`, `analysis`, and `pending`. User Pokemon receive `source=user` and `locked=true`; AI-selected Pokemon receive `source=ai`, `locked=false`, `reason`, `role`, and `replaces_gap`. If data cannot be validated, the uncertainty is recorded in `pending` instead of inventing stats, types, moves, abilities, or items.
+`build_team.py` builds a structured response for six-Pokemon teams from user choices, optional strategies, and ranked Champions candidates. It normalizes input, removes duplicates while preserving the first occurrence, applies the six-user-choice limit, validates Pokemon through an injectable PokeAPI-compatible source, and completes remaining slots with ranked candidates deterministically. The response includes `team_size`, `is_complete`, `user_requested`, `team_structure`, `team`, `analysis`, and `pending`. User Pokemon receive `source=user` and `locked=true`; when Champions membership can be checked, out-of-library user choices are preserved and reported in `pending`. AI-selected Pokemon receive `source=ai`, `locked=false`, `reason`, `role`, `replaces_gap`, and `champions_dex=true`, because default candidate completion is constrained to the Pokemon Champions library. If data cannot be validated, the uncertainty is recorded in `pending` instead of inventing stats, types, moves, abilities, or items.
 
 `rank_pokemon.py` ranks non-legendary Pokemon that are not marked as `is_battle_only`, using a base score formed by:
 
@@ -166,9 +169,9 @@ Ties use, in order, higher accuracy, higher power, and move name. `status` moves
 
 `type_relations_tool.py` defines the `get_type_relations` tool, validates `type`, calls `TypeRelationsFetcher`, and returns offensive and defensive type relations in structured and textual formats.
 
-`pokemon_ranking_tool.py` defines the `rank_pokemon` tool, validates optional type filters, `offense_stat`, `priority_stat`, `speed_mode`, and `head_size`, calls `rank_pokemon.py`, and returns a structured ranking with presentation text. Results already exclude legendary species and `is_battle_only` forms. After ranking, the tool also reads the SQLite database configured by `BANNED_POKEMON_DB_PATH` and removes any Pokemon registered in the `banned_pokemon` table, with columns `id` and `name`. If the database file does not exist, no additional filter is applied.
+`pokemon_ranking_tool.py` defines the `rank_pokemon` tool, validates optional type filters, `offense_stat`, `priority_stat`, `speed_mode`, `head_size`, and `champions_only`, calls `rank_pokemon.py`, and returns a structured ranking with presentation text. The MCP default is `champions_only=true`, so AI-facing rankings use the Pokemon Champions library unless explicitly disabled. Results already exclude legendary species and `is_battle_only` forms. After ranking, the tool also reads the SQLite database configured by `BANNED_POKEMON_DB_PATH` and removes any Pokemon registered in the `banned_pokemon` table, with columns `id` and `name`. If the database file does not exist, no additional filter is applied.
 
-`team_builder_tool.py` defines the `build_pokemon_team` tool, validates `pokemon`, `aces`, `primary_strategy`, and `complementary_strategy`, calls `build_team.py`, and returns a structured team proposal. The tool preserves user-provided Pokemon as fixed members when validated, completes open slots with ranked candidates, separates the team into `primary` and `complementary` trios, marks two aces when possible, and declares pending issues for missing data, conflicts, or insufficient candidates.
+`team_builder_tool.py` defines the `build_pokemon_team` tool, validates `pokemon`, `aces`, `primary_strategy`, and `complementary_strategy`, calls `build_team.py`, and returns a structured team proposal with `selection_scope` metadata for Champions-scoped AI candidates. The tool preserves user-provided Pokemon as fixed members when validated, completes open slots with ranked candidates, separates the team into `primary` and `complementary` trios, marks two aces when possible, and declares pending issues for missing data, conflicts, or insufficient candidates.
 
 `pokemon_moveset_tool.py` defines the `rank_pokemon_moveset` tool, validates arguments, calls the ranking rule, and returns:
 
