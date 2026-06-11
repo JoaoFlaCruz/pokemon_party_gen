@@ -1,6 +1,6 @@
 # Agentic Flow For Pokemon Teams
 
-This document defines five support agents for assembling six-Pokemon teams and the workflow guideline based on this project's agentic process. It complements `docs/agentic-team-pattern.md`, aligns with the diagram in `docs/agentic-team-flow.pdf`, and should be used when an AI needs to transform initial user choices into a complete, validated, and explained team.
+This document defines six support agents for assembling six-Pokemon teams and the workflow guideline based on this project's agentic process. It complements `docs/agentic-team-pattern.md`, aligns with the diagram in `docs/agentic-team-flow.pdf`, and should be used when an AI needs to transform initial user choices into a complete, validated, and explained team.
 
 ## Input
 
@@ -44,7 +44,7 @@ Responsibilities:
 - define two trios of three Pokemon, each with its own ace and strategy;
 - select or confirm a second ace when the user provides only one;
 - fill probable roles for each member;
-- propose moveset, ability, stat distribution, and item only when data has been validated;
+- propose provisional moveset, ability, stat distribution, and item only when data has been validated and the draft needs them before Agent F;
 - make explicit any gaps that still need candidates from Agent E.
 
 Guidelines:
@@ -58,7 +58,7 @@ Expected output:
 - team draft separated into primary and complementary trios;
 - two aces identified with different strategies;
 - suggested roles;
-- moveset, ability, stat distribution, and item when available;
+- provisional moveset, ability, stat distribution, and item when needed before final set population;
 - known initial gaps.
 
 ## Agent C: Strategic Validator
@@ -140,9 +140,37 @@ Expected output:
 - gap each candidate covers;
 - objective justification.
 
+## Agent F: Set Populator
+
+Responsibilities:
+
+- populate the final detailed set for each Pokemon after team membership, roles, and trio strategies are stable;
+- choose or confirm exactly four moves per Pokemon, with one reason per move, when enough validated move data and strategy context are available;
+- recommend EV allocations, nature, and held item according to the Pokemon's role, stats, trio strategy, and team needs;
+- write a concise usage suggestion explaining how to use the Pokemon in the final strategy;
+- request missing move, item, Pokemon, or type data through Agent A when that data is expected to improve the set;
+- record missing or uncertain set details in `pending` instead of inventing unsupported moves, EVs, natures, or items.
+
+Guidelines:
+
+- run after Agent C and Agent D have validated a stable six-Pokemon draft;
+- rerun for any Pokemon affected by a later change to team member, role, trio strategy, or priority gap;
+- keep user-selected Pokemon locked while populating their final sets;
+- tie EVs and natures to role and strategy, because they are strategic recommendations rather than direct PokeAPI facts;
+- stop with pending details when additional data calls would not improve confidence.
+
+Expected output:
+
+- `moves`: exactly four entries, each with a move name and reason;
+- `evs`: named stats with point values;
+- `nature`: recommended nature;
+- `item`: recommended held item;
+- `usage_suggestion`: how to use the Pokemon in the final strategy;
+- pending set details when validation or confidence is insufficient.
+
 ## Tool Boundary
 
-Full team construction is an AI workflow responsibility, not a dedicated MCP tool. `build_pokemon_team` is not active. Agents must preserve user-selected Pokemon as fixed members, use lower-level tools to gather validated data, and choose AI-selected additions from Pokemon Champions candidates returned by `rank_pokemon`.
+Full team construction is an AI workflow responsibility, not a dedicated MCP tool. `build_pokemon_team` is not active and must not be used for team construction. Agents must preserve user-selected Pokemon as fixed members, use lower-level tools to gather validated data, choose AI-selected additions from Pokemon Champions candidates returned by `rank_pokemon`, and use Agent F to populate final set details.
 
 ## One-To-Five-Call Operating Model
 
@@ -198,7 +226,8 @@ Reflection checkpoints:
 1. After the initial team draft, check completion, preserved user choices, Champions-scope pending issues, trio structure, ace distinction, pending issues, and whether the user's request justifies additional calls.
 2. After Agent C validates strategy, choose whether to proceed, refine the candidate set, ask the user, or stop with pending issues.
 3. After Agent D audits balance, distinguish acceptable risk from a blocker that deserves one focused correction.
-4. Before the final response, confirm the answer satisfies the user request and declare relevant risks, uncertainty, or unresolved data.
+4. After Agent F populates set details, confirm whether missing moves, EVs, natures, or items require one more data request through Agent A or should be declared in `pending`.
+5. Before the final response, confirm the answer satisfies the user request and declare relevant risks, uncertainty, or unresolved data.
 
 Loop-control rules:
 
@@ -244,10 +273,19 @@ User input
             -> Agent B updates the proposal
             -> Agent C revalidates
             -> Agent D reaudits
+            -> Agent F revisits affected set details
         -> if decision=ask_user or decision=stop_with_pending:
             -> stop with the relevant question or pending issue
         -> if decision=accept:
-            -> finalize response
+            -> Agent F populates final moves, EVs, nature, item, and usage suggestions
+    -> Set detail reflection checkpoint:
+        -> if decision=refine:
+            -> Agent A collects one focused missing move, item, Pokemon, or type data need
+            -> Agent F updates affected set details
+        -> if decision=ask_user or decision=stop_with_pending:
+            -> stop with the relevant question or pending issue
+        -> if decision=accept:
+            -> continue
     -> Final reflection checkpoint:
         -> confirm decision=accept or stop with declared pending issues
         -> finalize response
@@ -263,6 +301,8 @@ The flow should finish only when:
 - the trios are complementary while preserving distinct identities;
 - all user Pokemon were preserved or recorded as pending;
 - each AI-selected Pokemon has a role, reason, and covered gap;
+- Agent F populated detailed sets for each final Pokemon when enough validated data and confidence are available;
+- each populated set has four moves with reasons, EVs with named point values, nature, item, and usage suggestion;
 - relevant risks and uncertainties are declared;
 - the final format follows `docs/agentic-team-pattern.md`.
 

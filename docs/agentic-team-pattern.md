@@ -2,7 +2,7 @@
 
 This document defines how an AI should build a six-Pokemon team when the user provides N desired Pokemon. The goal is to preserve the user's choices, complete the team coherently, and explain the composition in a consistent structure.
 
-When the team is assembled through a multi-agent flow, also use `docs/agentic-team-flow.md`, which defines agents A-E, their responsibilities, and the validation/refinement cycle.
+When the team is assembled through a multi-agent flow, also use `docs/agentic-team-flow.md`, which defines agents A-F, their responsibilities, and the validation/refinement cycle.
 
 ## Objective
 
@@ -39,6 +39,7 @@ For each user-selected Pokemon, the AI must structure:
 - `locked`: `true`.
 - `reason`: why it was preserved, usually "User-provided choice".
 - `role`: team role, when it can be inferred.
+- detailed set fields when enough validated data and strategy context are available: `moves`, `evs`, `nature`, `item`, and `usage_suggestion`.
 - `notes`: important observations such as coverage, redundancy, or gaps.
 
 If a provided Pokemon cannot be found or validated, the AI must:
@@ -58,6 +59,7 @@ Each AI-selected Pokemon must include:
 - `reason`: objective reason for the choice.
 - `role`: intended role in the team.
 - `replaces_gap`: gap it helps cover.
+- detailed set fields when enough validated data and strategy context are available: `moves`, `evs`, `nature`, `item`, and `usage_suggestion`.
 
 Selection may be called random only when there is a real choice among valid candidates. Even then, randomness must be controlled by criteria.
 
@@ -139,6 +141,20 @@ Use these roles as standard vocabulary:
 - `type-coverage`: choice made primarily for type coverage.
 - `flex`: flexible role when data is insufficient.
 
+## Detailed Set Population
+
+Agent F must populate final set details after the team members, roles, trio strategies, and main risks are stable.
+
+For each final Pokemon, include:
+
+- `moves`: exactly four moves, each with a reason explaining its strategic purpose.
+- `evs`: named stat allocations with point values.
+- `nature`: recommended nature.
+- `item`: recommended held item.
+- `usage_suggestion`: concise guidance for using the Pokemon in the team strategy.
+
+Agent F must not invent moves, EVs, natures, or items. If a detail cannot be validated or confidently justified from available data, record the unresolved field in `pending` instead of filling it with unsupported content.
+
 ## Reflection And Finalization
 
 Before presenting the final team, run a concise reflection checkpoint. The checkpoint should decide one of:
@@ -160,12 +176,30 @@ The AI should respond with this structure:
 Final team
 Primary trio - strategy=...
 1. Pokemon - source=user|ai - role=ace|...
-   Reason: ...
+   Motivo: ...
+   Golpes:
+   - Move A: ...
+   - Move B: ...
+   - Move C: ...
+   - Move D: ...
+   EVs: stat-a XXX pts + stat-b XXX pts + stat-c XXX pts
+   Natureza: ...
+   Item: ...
+   Sugestao: ...
    Notes: ...
 
 Complementary trio - strategy=...
 4. Pokemon - source=user|ai - role=ace|...
-   Reason: ...
+   Motivo: ...
+   Golpes:
+   - Move A: ...
+   - Move B: ...
+   - Move C: ...
+   - Move D: ...
+   EVs: stat-a XXX pts + stat-b XXX pts + stat-c XXX pts
+   Natureza: ...
+   Item: ...
+   Sugestao: ...
    Notes: ...
 
 Team analysis
@@ -197,6 +231,20 @@ When another agent or system needs to consume the answer, use JSON:
       "role": "ace",
       "trio": "primary",
       "reason": "User-provided choice.",
+      "moves": [
+        {"name": "move-a", "reason": "Supports the primary strategy."},
+        {"name": "move-b", "reason": "Provides coverage."},
+        {"name": "move-c", "reason": "Improves utility."},
+        {"name": "move-d", "reason": "Supports the endgame plan."}
+      ],
+      "evs": [
+        {"stat": "speed", "points": 252},
+        {"stat": "special-attack", "points": 252},
+        {"stat": "hp", "points": 4}
+      ],
+      "nature": "timid",
+      "item": "held-item-a",
+      "usage_suggestion": "Use as the primary pressure point for the first trio.",
       "notes": []
     },
     {
@@ -207,6 +255,20 @@ When another agent or system needs to consume the answer, use JSON:
       "trio": "complementary",
       "reason": "Covers a team type gap.",
       "replaces_gap": "defensive coverage",
+      "moves": [
+        {"name": "move-e", "reason": "Matches the assigned role."},
+        {"name": "move-f", "reason": "Covers a relevant matchup."},
+        {"name": "move-g", "reason": "Adds team utility."},
+        {"name": "move-h", "reason": "Supports the complementary strategy."}
+      ],
+      "evs": [
+        {"stat": "hp", "points": 252},
+        {"stat": "defense", "points": 252},
+        {"stat": "special-defense", "points": 4}
+      ],
+      "nature": "bold",
+      "item": "held-item-b",
+      "usage_suggestion": "Use to cover the defensive gap and support the complementary trio.",
       "notes": []
     }
   ],
@@ -246,28 +308,82 @@ Expected response:
 Final team
 Primary trio - strategy=electric coverage and speed pressure
 1. pikachu - source=user - role=ace
-   Reason: User-provided choice.
+   Motivo: User-provided choice.
+   Golpes:
+   - thunderbolt: Main Electric pressure.
+   - move-b: Coverage or utility, if validated.
+   - move-c: Coverage or utility, if validated.
+   - move-d: Coverage or utility, if validated.
+   EVs: speed 252 pts + special-attack 252 pts + hp 4 pts
+   Natureza: timid
+   Item: held item, if validated.
+   Sugestao: Use as a fast Electric attacker that pressures early openings.
    Notes: Can act as a fast Electric attacker.
 
 2. pokemon-b - source=ai - role=speed-control
-   Reason: Supports the first ace's strategy.
+   Motivo: Supports the first ace's strategy.
+   Golpes:
+   - move-a: Speed-control purpose.
+   - move-b: Coverage purpose.
+   - move-c: Utility purpose.
+   - move-d: Endgame purpose.
+   EVs: speed 252 pts + attack 252 pts + hp 4 pts
+   Natureza: role-aligned nature.
+   Item: role-aligned item.
+   Sugestao: Use to keep offensive pace for the primary trio.
    Notes: Helps maintain offensive pace.
 
 3. pokemon-c - source=ai - role=physical-wall
-   Reason: Completes a defensive gap in the primary trio.
+   Motivo: Completes a defensive gap in the primary trio.
+   Golpes:
+   - move-a: Defensive utility.
+   - move-b: Reliable damage.
+   - move-c: Team support.
+   - move-d: Coverage or recovery.
+   EVs: hp 252 pts + defense 252 pts + special-defense 4 pts
+   Natureza: defensive nature.
+   Item: defensive item.
+   Sugestao: Use to absorb physical pressure and create safe turns.
    Notes: Chosen from durable candidates.
 
 Complementary trio - strategy=special wallbreak with defensive support
 4. charizard - source=user - role=ace
-   Reason: User-provided choice.
+   Motivo: User-provided choice.
+   Golpes:
+   - move-a: Main Fire pressure.
+   - move-b: Secondary STAB or coverage.
+   - move-c: Setup or utility.
+   - move-d: Coverage or endgame option.
+   EVs: speed 252 pts + special-attack 252 pts + hp 4 pts
+   Natureza: role-aligned nature.
+   Item: role-aligned item.
+   Sugestao: Use as the second route for offensive pressure.
    Notes: Leads the team's second offensive route.
 
 5. pokemon-d - source=ai - role=support
-   Reason: Sustains the second ace's strategy.
+   Motivo: Sustains the second ace's strategy.
+   Golpes:
+   - move-a: Support purpose.
+   - move-b: Protection or control.
+   - move-c: Coverage or utility.
+   - move-d: Recovery or pivoting.
+   EVs: hp 252 pts + special-defense 252 pts + defense 4 pts
+   Natureza: support nature.
+   Item: support item.
+   Sugestao: Use to protect the complementary ace and keep the plan stable.
    Notes: Helps protect the complementary trio.
 
 6. pokemon-e - source=ai - role=type-coverage
-   Reason: Covers shared weaknesses between the trios.
+   Motivo: Covers shared weaknesses between the trios.
+   Golpes:
+   - move-a: Coverage purpose.
+   - move-b: Secondary coverage.
+   - move-c: Utility purpose.
+   - move-d: Endgame or pivoting option.
+   EVs: attack 252 pts + speed 252 pts + hp 4 pts
+   Natureza: coverage-aligned nature.
+   Item: coverage-aligned item.
+   Sugestao: Use to switch into shared risks and create momentum.
    Notes: Also creates safe entry for the primary trio.
 
 Team analysis

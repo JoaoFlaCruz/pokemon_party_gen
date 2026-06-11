@@ -26,8 +26,10 @@ Se algum desses dados ja estiver claro na conversa, reutilizar o dado informado 
 
 ## Fluxo Agentico
 
-Seguir o fluxo definido em `docs/fluxograma_agentico.pdf` e detalhado em
-`docs/fluxo-agentico-times.md`:
+Seguir o fluxo definido em `docs/agentic-team-flow.md` e o padrao de resposta
+em `docs/agentic-team-pattern.md`. `build_pokemon_team` nao e uma tool MCP
+ativa e nao deve ser usado para construcao de times; a montagem e
+responsabilidade do fluxo agentico com tools de dados de nivel inferior.
 
 1. Definir o pedido inicial: confirmar ace principal, estrategia base e quantidade de times.
 2. Agente A: coletar dados dos Pokemon informados, golpes, itens e relacoes de tipo quando necessarias.
@@ -39,6 +41,8 @@ Seguir o fluxo definido em `docs/fluxograma_agentico.pdf` e detalhado em
 8. Agente C: validar regras de equipe, repeticoes de Pokemon, repeticoes de item quando aplicavel, dois aces e coesao entre Pokemon.
 9. Agente D: auditar tipos, velocidades, stats de ataque e defesa, papeis, diferenca entre trios e fraquezas do time.
 10. Quando C ou D apontarem lacuna relevante, retornar ao Agente E para selecionar substitutos ou ajustes e repetir o ciclo ate o time ficar valido ou a pendencia precisar de confirmacao do usuario.
+11. Agente F: popular os detalhes finais de cada Pokemon de acordo com role, trio, estrategia e dados validados: quatro golpes com motivo, EVs com pontos, natureza, item e sugestao de uso.
+12. Se uma troca de Pokemon, role, estrategia de trio ou lacuna prioritaria acontecer apos refinamento, o Agente F deve revisar os Pokemon afetados antes da resposta final.
 
 Cada time final deve unir:
 
@@ -47,7 +51,8 @@ Cada time final deve unir:
 - estrategias diferentes entre os dois trios;
 - complementaridade defensiva, ofensiva ou utilitaria entre os trios;
 - exatamente 6 Pokemon;
-- movesets, habilidades, distribuicao de stats e itens quando os dados forem validados ou quando a estrategia exigir esse nivel de detalhe.
+- detalhes finais populados pelo Agente F quando houver dados validados e confianca suficiente;
+- pendencias declaradas quando golpes, EVs, natureza ou item nao puderem ser validados ou justificados.
 
 ## Estrutura Dos Trios
 
@@ -79,7 +84,7 @@ Priorizar:
 - variedade real entre times para comparacao;
 - diferenca clara entre trio principal e trio complementar.
 
-Nao inventar Pokemon, tipos, habilidades, golpes, stats ou itens. Quando dados reais forem necessarios, usar as tools do projeto ou uma fonte compativel com PokeAPI. Se a ferramenta disponivel nao retornar um dado exigido, declarar a pendencia em vez de preencher por suposicao.
+Nao inventar Pokemon, tipos, habilidades, golpes, stats, EVs, naturezas ou itens. Quando dados reais forem necessarios, usar as tools do projeto ou uma fonte compativel com PokeAPI. Se a ferramenta disponivel nao retornar um dado exigido, declarar a pendencia em vez de preencher por suposicao.
 
 ## Variacao Entre Times
 
@@ -109,18 +114,72 @@ Time 1
 Trio principal - estrategia=...
 1. pokemon - role=ace|...
    Motivo: ...
+   Golpes:
+   - golpe A: motivo
+   - golpe B: motivo
+   - golpe C: motivo
+   - golpe D: motivo
+   EVs: stat A XXX pts + stat B XXX pts + stat C XXX pts
+   Natureza: ...
+   Item: ...
+   Sugestao: ...
 2. pokemon - role=...
    Motivo: ...
+   Golpes:
+   - golpe A: motivo
+   - golpe B: motivo
+   - golpe C: motivo
+   - golpe D: motivo
+   EVs: stat A XXX pts + stat B XXX pts + stat C XXX pts
+   Natureza: ...
+   Item: ...
+   Sugestao: ...
 3. pokemon - role=...
    Motivo: ...
+   Golpes:
+   - golpe A: motivo
+   - golpe B: motivo
+   - golpe C: motivo
+   - golpe D: motivo
+   EVs: stat A XXX pts + stat B XXX pts + stat C XXX pts
+   Natureza: ...
+   Item: ...
+   Sugestao: ...
 
 Trio complementar - estrategia=...
 4. pokemon - role=ace
    Motivo: ...
+   Golpes:
+   - golpe A: motivo
+   - golpe B: motivo
+   - golpe C: motivo
+   - golpe D: motivo
+   EVs: stat A XXX pts + stat B XXX pts + stat C XXX pts
+   Natureza: ...
+   Item: ...
+   Sugestao: ...
 5. pokemon - role=...
    Motivo: ...
+   Golpes:
+   - golpe A: motivo
+   - golpe B: motivo
+   - golpe C: motivo
+   - golpe D: motivo
+   EVs: stat A XXX pts + stat B XXX pts + stat C XXX pts
+   Natureza: ...
+   Item: ...
+   Sugestao: ...
 6. pokemon - role=...
    Motivo: ...
+   Golpes:
+   - golpe A: motivo
+   - golpe B: motivo
+   - golpe C: motivo
+   - golpe D: motivo
+   EVs: stat A XXX pts + stat B XXX pts + stat C XXX pts
+   Natureza: ...
+   Item: ...
+   Sugestao: ...
 
 Analise do time
 - Plano principal: ...

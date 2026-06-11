@@ -215,15 +215,16 @@ CLI or MCP/tool (`ban_pokemon`)
 
 ## Agentic Team Flow
 
-`docs/agentic-team-flow.md` defines five agents for team assembly:
+`docs/agentic-team-flow.md` defines six agents for team assembly:
 
 - Agent A: collects Pokemon, move, general item, and type-relation data.
-- Agent B: builds a playable proposal with strategy, movesets, abilities, stat distribution, and items when data has been validated.
+- Agent B: builds a playable proposal with strategy, roles, abilities, and provisional set details when data has been validated.
 - Agent E: selects candidates to fill open slots or correct gaps before and after validation stages.
 - Agent C: validates team rules, duplicates, items, and strategic cohesion.
 - Agent D: audits types, speeds, offensive and defensive stats, roles, weaknesses, and gaps.
+- Agent F: populates final per-Pokemon moves, EVs, nature, item, and usage suggestion after team composition and strategy are stable.
 
-That flow follows `docs/agentic-team-flow.pdf` and should be used together with `docs/agentic-team-pattern.md` when an AI needs to complete a six-Pokemon team from user choices and strategy. The workflow includes reflection checkpoints after the initial team draft, strategic validation, balance audit, and before the final response, using `accept`, `refine`, `ask_user`, or `stop_with_pending` decisions to keep refinement bounded. AI-selected additions must be chosen from Champions-scoped candidate data provided by `rank_pokemon`; user-selected Pokemon remain fixed choices and are distinguished from AI additions.
+That flow follows `docs/agentic-team-flow.pdf` and should be used together with `docs/agentic-team-pattern.md` when an AI needs to complete a six-Pokemon team from user choices and strategy. The workflow includes reflection checkpoints after the initial team draft, strategic validation, balance audit, Agent F set population, and before the final response, using `accept`, `refine`, `ask_user`, or `stop_with_pending` decisions to keep refinement bounded. AI-selected additions must be chosen from Champions-scoped candidate data provided by `rank_pokemon`; user-selected Pokemon remain fixed choices and are distinguished from AI additions.
 
 ## Maintenance Principles
 
