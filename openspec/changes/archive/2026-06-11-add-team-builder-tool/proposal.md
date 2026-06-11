@@ -33,7 +33,7 @@ The project already has data and ranking tools, plus documented rules for assemb
   - `mcp_server/tests/mcp/tools/test_tools.py`
   - `mcp_server/tests/application/use_cases/test_rankings.py` or new use-case tests for team orchestration
 - Affected docs:
-  - `docs/arquitetura.md`
-  - `docs/padrao-agentico-times.md`
-  - potentially `docs/fluxo-agentico-times.md`
+  - `docs/architecture.md`
+  - `docs/agentic-team-pattern.md`
+  - potentially `docs/agentic-team-flow.md`
 - No external dependency changes are expected.

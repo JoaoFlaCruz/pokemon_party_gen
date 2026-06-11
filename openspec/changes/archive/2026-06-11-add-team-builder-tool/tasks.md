@@ -21,11 +21,11 @@
 - [x] 3.2 Add use-case tests for unknown Pokemon, unavailable data, insufficient candidates, trio assignment, and AI-selected member explanations.
 - [x] 3.3 Add MCP tool tests for schema shape, argument validation, presentation formatting, and structured response shape.
 - [x] 3.4 Add MCP server dispatch tests showing `build_pokemon_team` appears in `tools/list` and works through `tools/call`.
-- [x] 3.5 Run the repository unit test command documented in `docs/arquitetura.md`.
+- [x] 3.5 Run the repository unit test command documented in `docs/architecture.md`.
 
 ## 4. Documentation
 
-- [x] 4.1 Update `docs/arquitetura.md` with the new use case, MCP tool, input/output contract, dispatch registration, and tests.
-- [x] 4.2 Update `docs/padrao-agentico-times.md` with the executable tool contract and any response-format refinements.
-- [x] 4.3 Update `docs/fluxo-agentico-times.md` to explain how the tool maps the A-E flow into deterministic orchestration.
+- [x] 4.1 Update `docs/architecture.md` with the new use case, MCP tool, input/output contract, dispatch registration, and tests.
+- [x] 4.2 Update `docs/agentic-team-pattern.md` with the executable tool contract and any response-format refinements.
+- [x] 4.3 Update `docs/agentic-team-flow.md` to explain how the tool maps the A-E flow into deterministic orchestration.
 - [x] 4.4 Document any intentionally deferred scope such as held item suggestions, moveset finalization, or controlled randomness.
