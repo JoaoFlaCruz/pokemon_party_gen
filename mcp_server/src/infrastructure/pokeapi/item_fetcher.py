@@ -11,7 +11,11 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urljoin
 from urllib.request import Request, urlopen
 
-from mcp_server.src.config.env import POKEAPI_BASE_URL, POKEAPI_MAX_WORKERS, POKEAPI_TIMEOUT
+from mcp_server.src.config.env import (
+    POKEAPI_BASE_URL,
+    POKEAPI_MAX_WORKERS,
+    POKEAPI_TIMEOUT,
+)
 
 
 @dataclass(frozen=True)
@@ -88,10 +92,7 @@ class ItemFetcher:
     def fetch_item(self, item: str | int) -> dict[str, Any]:
         """Return one item enriched with the fields used by AI tools."""
         payload = self._get_json(f"item/{quote(str(item).strip().lower())}/")
-        return {
-            field: payload.get(field)
-            for field in self.DETAIL_FIELDS
-        }
+        return {field: payload.get(field) for field in self.DETAIL_FIELDS}
 
     def _get_json(self, path: str) -> dict[str, Any]:
         url = urljoin(self.base_url, path)
@@ -101,7 +102,9 @@ class ItemFetcher:
             with urlopen(request, timeout=self.timeout) as response:
                 return json.loads(response.read().decode("utf-8"))
         except HTTPError as exc:
-            raise RuntimeError(f"API request failed with HTTP {exc.code}: {url}") from exc
+            raise RuntimeError(
+                f"API request failed with HTTP {exc.code}: {url}"
+            ) from exc
         except URLError as exc:
             raise RuntimeError(f"API request failed: {url}") from exc
 

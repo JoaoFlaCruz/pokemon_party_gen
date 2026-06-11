@@ -172,7 +172,9 @@ class PokemonMovesetToolTests(unittest.TestCase):
             execute_pokemon_moveset_tool({}, ranker=self.fake_ranker)
 
         with self.assertRaises(ValueError):
-            execute_pokemon_moveset_tool({"pokemon": "pikachu", "max_moves": 0}, ranker=self.fake_ranker)
+            execute_pokemon_moveset_tool(
+                {"pokemon": "pikachu", "max_moves": 0}, ranker=self.fake_ranker
+            )
 
     @staticmethod
     def fake_ranker(pokemon: str | int) -> dict[str, Any]:
@@ -273,7 +275,9 @@ class PokemonRankingToolTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = Path(tmpdir) / "banned_pokemon.sqlite3"
             with sqlite3.connect(db_path) as connection:
-                connection.execute("CREATE TABLE banned_pokemon (id INTEGER, name TEXT)")
+                connection.execute(
+                    "CREATE TABLE banned_pokemon (id INTEGER, name TEXT)"
+                )
                 connection.executemany(
                     "INSERT INTO banned_pokemon (id, name) VALUES (?, ?)",
                     [(3, "venusaur"), (6, "charizard")],
@@ -301,13 +305,19 @@ class PokemonRankingToolTests(unittest.TestCase):
             )
 
         with self.assertRaises(ValueError):
-            execute_pokemon_ranking_tool({"offense_stat": "speed"}, ranker=self.fake_ranker)
+            execute_pokemon_ranking_tool(
+                {"offense_stat": "speed"}, ranker=self.fake_ranker
+            )
 
         with self.assertRaises(ValueError):
-            execute_pokemon_ranking_tool({"priority_stat": "evasion"}, ranker=self.fake_ranker)
+            execute_pokemon_ranking_tool(
+                {"priority_stat": "evasion"}, ranker=self.fake_ranker
+            )
 
         with self.assertRaises(ValueError):
-            execute_pokemon_ranking_tool({"speed_mode": "middle"}, ranker=self.fake_ranker)
+            execute_pokemon_ranking_tool(
+                {"speed_mode": "middle"}, ranker=self.fake_ranker
+            )
 
         with self.assertRaises(ValueError):
             execute_pokemon_ranking_tool({"head_size": 0}, ranker=self.fake_ranker)
@@ -342,7 +352,9 @@ class PokemonRankingToolTests(unittest.TestCase):
                 "weighted_score_parts": {
                     "hp": 80,
                     "defense": 83,
-                    "special-defense": 140.0 if priority_stat == "special-defense" else 100,
+                    "special-defense": 140.0
+                    if priority_stat == "special-defense"
+                    else 100,
                     "special-attack": 100,
                     "speed": 80 if speed_mode != "ignore" else None,
                 },
@@ -496,10 +508,14 @@ class TeamBuilderToolTests(unittest.TestCase):
             execute_team_builder_tool({"pokemon": [""]}, builder=self.fake_builder)
 
         with self.assertRaises(ValueError):
-            execute_team_builder_tool({"aces": ["a", "b", "c"]}, builder=self.fake_builder)
+            execute_team_builder_tool(
+                {"aces": ["a", "b", "c"]}, builder=self.fake_builder
+            )
 
         with self.assertRaises(ValueError):
-            execute_team_builder_tool({"primary_strategy": 1}, builder=self.fake_builder)
+            execute_team_builder_tool(
+                {"primary_strategy": 1}, builder=self.fake_builder
+            )
 
     @staticmethod
     def fake_builder(
@@ -569,7 +585,6 @@ class PokemonMcpServerTests(unittest.TestCase):
         self.assertIn(tool_definition(TEAM_BUILDER_TOOL), tools["result"]["tools"])
         self.assertIn(tool_definition(TYPE_RELATIONS_TOOL), tools["result"]["tools"])
 
-
     def test_team_builder_tool_dispatch_returns_structured_content(self) -> None:
         original = pokemon_mcp_server.TOOLS["build_pokemon_team"]
 
@@ -582,21 +597,32 @@ class PokemonMcpServerTests(unittest.TestCase):
             }
 
         try:
-            pokemon_mcp_server.TOOLS["build_pokemon_team"] = (TEAM_BUILDER_TOOL, fake_executor)
+            pokemon_mcp_server.TOOLS["build_pokemon_team"] = (
+                TEAM_BUILDER_TOOL,
+                fake_executor,
+            )
             response = handle_message(
                 {
                     "jsonrpc": "2.0",
                     "id": 4,
                     "method": "tools/call",
-                    "params": {"name": "build_pokemon_team", "arguments": {"pokemon": ["pikachu"]}},
+                    "params": {
+                        "name": "build_pokemon_team",
+                        "arguments": {"pokemon": ["pikachu"]},
+                    },
                 }
             )
         finally:
             pokemon_mcp_server.TOOLS["build_pokemon_team"] = original
 
         self.assertEqual(response["result"]["content"][0]["text"], "fake team")
-        self.assertEqual(response["result"]["structuredContent"]["tool_name"], "build_pokemon_team")
-        self.assertEqual(response["result"]["structuredContent"]["data"], {"team_size": 6, "team": []})
+        self.assertEqual(
+            response["result"]["structuredContent"]["tool_name"], "build_pokemon_team"
+        )
+        self.assertEqual(
+            response["result"]["structuredContent"]["data"],
+            {"team_size": 6, "team": []},
+        )
 
     def test_unknown_tool_returns_json_rpc_error(self) -> None:
         response = handle_message(

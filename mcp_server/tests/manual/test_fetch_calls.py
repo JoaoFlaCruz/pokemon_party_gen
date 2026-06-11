@@ -37,23 +37,23 @@ def print_items_sample(label: str, data: dict, limit: int = 5) -> None:
 def main() -> None:
     moves_fetcher = PokemonMovesFetcher()
 
-    #print_sample("Todos os Pokemon", fetcher.fetch_pokemon())
-    #print_sample("Tipo fire", fetcher.fetch_pokemon(types=["fire"]))
-    #print_sample("Tipos water + flying", fetcher.fetch_pokemon(types=["water", "flying"]))
-    #print_sample("Habilidade overgrow", fetcher.fetch_pokemon(ability="overgrow"))
-    #print_sample("Ataque thunder-punch", fetcher.fetch_pokemon(move="thunder-punch"))
-    #print_sample(
+    # print_sample("Todos os Pokemon", fetcher.fetch_pokemon())
+    # print_sample("Tipo fire", fetcher.fetch_pokemon(types=["fire"]))
+    # print_sample("Tipos water + flying", fetcher.fetch_pokemon(types=["water", "flying"]))
+    # print_sample("Habilidade overgrow", fetcher.fetch_pokemon(ability="overgrow"))
+    # print_sample("Ataque thunder-punch", fetcher.fetch_pokemon(move="thunder-punch"))
+    # print_sample(
     #    "Filtro combinado",
     #    fetcher.fetch_pokemon(types=["grass"], ability="overgrow"),
-    #)
+    # )
     print_pokemon_moves_sample(
         "Golpes do Bulbasaur",
         moves_fetcher.fetch_pokemon_moves("bulbasaur"),
     )
-    #print_items_sample(
+    # print_items_sample(
     #    "Itens gerais",
     #    item_fetcher.fetch_items(limit=5),
-    #)
+    # )
 
 
 if __name__ == "__main__":

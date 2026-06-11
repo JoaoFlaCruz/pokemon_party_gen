@@ -6,12 +6,27 @@ import json
 import sys
 from typing import Any
 
-from mcp_server.src.mcp.tools.banned_pokemon_tool import BAN_POKEMON_TOOL, execute_ban_pokemon_tool
+from mcp_server.src.mcp.tools.banned_pokemon_tool import (
+    BAN_POKEMON_TOOL,
+    execute_ban_pokemon_tool,
+)
 from mcp_server.src.mcp.tools.item_tool import ITEM_TOOL, execute_item_tool
-from mcp_server.src.mcp.tools.pokemon_moveset_tool import POKEMON_MOVESET_TOOL, execute_pokemon_moveset_tool
-from mcp_server.src.mcp.tools.pokemon_ranking_tool import POKEMON_RANKING_TOOL, execute_pokemon_ranking_tool
-from mcp_server.src.mcp.tools.team_builder_tool import TEAM_BUILDER_TOOL, execute_team_builder_tool
-from mcp_server.src.mcp.tools.type_relations_tool import TYPE_RELATIONS_TOOL, execute_type_relations_tool
+from mcp_server.src.mcp.tools.pokemon_moveset_tool import (
+    POKEMON_MOVESET_TOOL,
+    execute_pokemon_moveset_tool,
+)
+from mcp_server.src.mcp.tools.pokemon_ranking_tool import (
+    POKEMON_RANKING_TOOL,
+    execute_pokemon_ranking_tool,
+)
+from mcp_server.src.mcp.tools.team_builder_tool import (
+    TEAM_BUILDER_TOOL,
+    execute_team_builder_tool,
+)
+from mcp_server.src.mcp.tools.type_relations_tool import (
+    TYPE_RELATIONS_TOOL,
+    execute_type_relations_tool,
+)
 
 JSONRPC_VERSION = "2.0"
 DEFAULT_PROTOCOL_VERSION = "2024-11-05"
@@ -75,7 +90,9 @@ def handle_message(message: dict[str, Any]) -> dict[str, Any] | None:
         return error_response(request_id, -32602, str(exc))
     except NotImplementedError as exc:
         return error_response(request_id, -32601, str(exc))
-    except Exception as exc:  # pragma: no cover - keeps server failures JSON-RPC shaped.
+    except (
+        Exception
+    ) as exc:  # pragma: no cover - keeps server failures JSON-RPC shaped.
         return error_response(request_id, -32000, str(exc))
 
 

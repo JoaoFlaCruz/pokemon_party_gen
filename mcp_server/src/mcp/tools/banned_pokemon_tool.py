@@ -119,7 +119,9 @@ def format_ban_pokemon_presentation(data: dict[str, Any]) -> str:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Register a banned Pokemon for ranking tools.")
+    parser = argparse.ArgumentParser(
+        description="Register a banned Pokemon for ranking tools."
+    )
     parser.add_argument("id", type=int)
     parser.add_argument("name")
     parser.add_argument("--db-path", default=BANNED_POKEMON_DB_PATH)

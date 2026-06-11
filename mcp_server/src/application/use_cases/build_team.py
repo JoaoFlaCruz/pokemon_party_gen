@@ -16,13 +16,11 @@ DEFAULT_COMPLEMENTARY_STRATEGY = "complementary coverage"
 
 
 class LooksUpPokemon(Protocol):
-    def __call__(self, pokemon: str | int) -> dict[str, Any]:
-        ...
+    def __call__(self, pokemon: str | int) -> dict[str, Any]: ...
 
 
 class RanksCandidates(Protocol):
-    def __call__(self, head_size: int) -> list[dict[str, Any]]:
-        ...
+    def __call__(self, head_size: int) -> list[dict[str, Any]]: ...
 
 
 def build_pokemon_team(
@@ -92,7 +90,8 @@ def build_pokemon_team(
     assign_trios_and_aces(members, normalized_aces)
     apply_roles(members)
     structure = {
-        "primary_trio_strategy": clean_text(primary_strategy) or DEFAULT_PRIMARY_STRATEGY,
+        "primary_trio_strategy": clean_text(primary_strategy)
+        or DEFAULT_PRIMARY_STRATEGY,
         "complementary_trio_strategy": (
             clean_text(complementary_strategy) or DEFAULT_COMPLEMENTARY_STRATEGY
         ),
@@ -165,7 +164,9 @@ def normalize_selected_pokemon(
     return normalized, pending
 
 
-def normalize_aces(aces: list[str | int] | None) -> tuple[list[str | int], list[dict[str, Any]]]:
+def normalize_aces(
+    aces: list[str | int] | None,
+) -> tuple[list[str | int], list[dict[str, Any]]]:
     if not aces:
         return [], []
 
@@ -355,7 +356,9 @@ def build_analysis(
     return {
         "strengths": [
             "Preserva escolhas validadas do usuario.",
-            "Completa seis membros com candidatos ranqueados." if complete else "Mantem dados parciais validados.",
+            "Completa seis membros com candidatos ranqueados."
+            if complete
+            else "Mantem dados parciais validados.",
         ],
         "trio_differences": [
             (
