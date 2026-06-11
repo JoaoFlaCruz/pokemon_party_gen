@@ -15,6 +15,7 @@ ranking Pokemon and moves, and exposing the functionality through MCP tools.
 - `mcp_server/tests/manual/`: manual checks against a running local PokeAPI.
 - `docs/architecture.md`: architecture, contracts, flow, tools, and test notes.
 - `docs/agentic-team-pattern.md`: rules for assembling six-Pokemon teams.
+- `docs/agentic-team-flow.md`: agentic workflow and reflection decisions for multi-step team assembly.
 - `pokeapi/`: local PokeAPI source used as a compatible API reference/runtime.
 
 ## Build, Test, and Development Commands
@@ -85,8 +86,10 @@ manual PokeAPI checks or uncertain data.
 
 Do not invent Pokemon data. Use the project tools or a PokeAPI-compatible source
 when real Pokemon data is needed. For requests to assemble a team of 6 Pokemon,
-follow `docs/agentic-team-pattern.md`, preserve user-selected Pokemon as fixed
-members, and clearly distinguish user choices from AI-selected additions.
+follow `docs/agentic-team-pattern.md`; for multi-step team assembly, also follow
+`docs/agentic-team-flow.md` and its reflection decisions. Preserve user-selected
+Pokemon as fixed members, and clearly distinguish user choices from AI-selected
+additions.
 
 Use the local OpenSpec skills in `.codex/skills/` naturally when the user's
 intent matches an OpenSpec workflow, even if the user does not name the skill:

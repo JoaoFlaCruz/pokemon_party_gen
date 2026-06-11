@@ -185,6 +185,32 @@ Add `list_items` when itemization is requested. If items are not relevant, use t
 
 Do not use all five calls by default. Stop once the request is satisfied, the relevant pending issues are stated, and additional calls would not change the recommendation.
 
+## Reflection Pattern
+
+Reflection is a concise decision checkpoint, not a separate tool call by default. Use it to decide whether the current team is good enough, whether one more focused call can improve it, or whether the user or data source must resolve a blocker.
+
+Use these decisions:
+
+- `accept`: the team satisfies the request, preserves user choices, has six validated members when enough data is available, has two distinct trios and aces, and has no blocker that another call is expected to improve.
+- `refine`: one specific gap can be improved by one additional candidate, moveset, type, item, or correction call within the 1-to-5-call model.
+- `ask_user`: user constraints are ambiguous, conflict with fixed Pokemon, or require a preference that cannot be inferred from validated data.
+- `stop_with_pending`: data is unavailable, constraints prevent a complete confident team, or additional calls would not change the recommendation.
+
+Reflection checkpoints:
+
+1. After the initial `build_pokemon_team` result, check completion, preserved user choices, trio structure, ace distinction, pending issues, and whether the user's request justifies additional calls.
+2. After Agent C validates strategy, choose whether to proceed, refine the candidate set, ask the user, or stop with pending issues.
+3. After Agent D audits balance, distinguish acceptable risk from a blocker that deserves one focused correction.
+4. Before the final response, confirm the answer satisfies the user request and declare relevant risks, uncertainty, or unresolved data.
+
+Loop-control rules:
+
+- Stop at the lowest call count that satisfies the user's request and validation needs.
+- When choosing `refine`, name the highest-priority actionable gap, the next call, and the expected improvement before making that call.
+- Correct around user-selected Pokemon unless the user explicitly confirms a replacement.
+- Do not repeat the same kind of refinement without new information.
+- When the call model is exhausted or another call would not change the recommendation, choose `accept`, `ask_user`, or `stop_with_pending`.
+
 ## Workflow Guideline
 
 ```text
@@ -195,21 +221,39 @@ User input
     -> Agent E lists candidates to complete both trios and reduce weaknesses
     -> Agent A collects data for selected candidates
     -> Agent B integrates candidates and separates primary and complementary trios
+    -> Reflection checkpoint:
+        -> if decision=refine:
+            -> Agent E selects one focused adjustment
+        -> if decision=ask_user or decision=stop_with_pending:
+            -> stop with the relevant question or pending issue
+        -> if decision=accept:
+            -> continue
     -> Agent C validates rules, duplicates, items, two aces, and strategic cohesion
-        -> if validation fails:
-            -> Agent E selects replacements or adjustments for the reported gap
+    -> Reflection checkpoint:
+        -> if decision=refine:
+            -> Agent E selects replacements or adjustments for the highest-priority gap
             -> Agent A collects additional data
             -> Agent B updates the proposal
             -> Agent C revalidates
+        -> if decision=ask_user or decision=stop_with_pending:
+            -> stop with the relevant question or pending issue
+        -> if decision=accept:
+            -> continue
     -> Agent D audits types, speeds, attack, defense, and weaknesses for each trio and the complete team
-        -> if relevant weaknesses or insufficient trio distinction remain:
-            -> Agent E selects M Pokemon or 1 replacement to correct gaps
+    -> Reflection checkpoint:
+        -> if decision=refine:
+            -> Agent E selects 1 replacement or adjustment to correct the priority gap
             -> Agent A collects data for new candidates
             -> Agent B updates the proposal
             -> Agent C revalidates
             -> Agent D reaudits
-        -> if no blocking weaknesses remain:
+        -> if decision=ask_user or decision=stop_with_pending:
+            -> stop with the relevant question or pending issue
+        -> if decision=accept:
             -> finalize response
+    -> Final reflection checkpoint:
+        -> confirm decision=accept or stop with declared pending issues
+        -> finalize response
 ```
 
 ## Completion Conditions

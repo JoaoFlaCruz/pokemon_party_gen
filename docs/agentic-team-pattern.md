@@ -160,6 +160,19 @@ Use these roles as standard vocabulary:
 - `type-coverage`: choice made primarily for type coverage.
 - `flex`: flexible role when data is insufficient.
 
+## Reflection And Finalization
+
+Before presenting the final team, run a concise reflection checkpoint. The checkpoint should decide one of:
+
+- `accept`: present the team because it satisfies the request, preserves user choices, has six validated members when enough data is available, and has two distinct trios with two distinct aces.
+- `refine`: make one more focused improvement because a specific candidate, moveset, type, item, or correction call is expected to improve the recommendation.
+- `ask_user`: stop and ask for clarification because user constraints are ambiguous, conflict with fixed Pokemon, or require a preference that cannot be inferred.
+- `stop_with_pending`: present the best validated result with pending issues because data is unavailable, constraints prevent a confident complete team, or another call would not change the recommendation.
+
+Reflection must preserve locked user Pokemon. If a user-selected Pokemon creates a weakness, correct around it unless the user explicitly confirms replacement. Do not keep refining by repeating the same kind of call without new information; stop at the lowest call count that satisfies the request and validation needs.
+
+The final response should expose only the useful result of reflection: relevant risks, unresolved data, needed user confirmation, or why the team is ready. It should not include a long private reasoning transcript.
+
 ## Response Structure
 
 The AI should respond with this structure:

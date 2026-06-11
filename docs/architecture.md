@@ -228,7 +228,7 @@ CLI or MCP/tool (`ban_pokemon`)
 - Agent C: validates team rules, duplicates, items, and strategic cohesion.
 - Agent D: audits types, speeds, offensive and defensive stats, roles, weaknesses, and gaps.
 
-That flow follows `docs/agentic-team-flow.pdf` and should be used together with `docs/agentic-team-pattern.md` when an AI needs to complete a six-Pokemon team from user choices and strategy. The `build_pokemon_team` tool is the deterministic MCP implementation of that contract: it does not replace final human or agentic analysis, but it provides a validated, structured, and traceable base for agents.
+That flow follows `docs/agentic-team-flow.pdf` and should be used together with `docs/agentic-team-pattern.md` when an AI needs to complete a six-Pokemon team from user choices and strategy. The workflow includes reflection checkpoints after the initial team draft, strategic validation, balance audit, and before the final response, using `accept`, `refine`, `ask_user`, or `stop_with_pending` decisions to keep refinement bounded. The `build_pokemon_team` tool is the deterministic MCP implementation of that contract: it does not replace final human or agentic analysis, but it provides a validated, structured, and traceable base for agents.
 
 ## Maintenance Principles
 

@@ -34,7 +34,7 @@ New implementations must stay in the appropriate layer. Do not mix ranking rules
 
 ## Agentic Rules
 
-- For requests to build a six-Pokemon team from N desired Pokemon, follow `docs/agentic-team-pattern.md`.
+- For requests to build a six-Pokemon team from N desired Pokemon, follow `docs/agentic-team-pattern.md`; for multi-step team assembly, also follow `docs/agentic-team-flow.md` and its reflection decisions.
 - Preserve user choices as fixed team members and clearly distinguish user-selected Pokemon from AI-selected Pokemon.
 - When completing open slots, use explicit criteria for coverage, roles, and gaps; do not invent Pokemon data.
 - Use the local OpenSpec skills in `.codex/skills/` naturally when the user's intent matches an OpenSpec workflow, even if the skill is not named explicitly.
