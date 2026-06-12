@@ -184,6 +184,29 @@ python3 -m unittest mcp_server.tests.application.use_cases.test_build_team mcp_s
 
 Manual tests in `mcp_server/tests/manual/` depend on an active and populated local PokeAPI.
 
+## Desktop Interface (Electron Application)
+
+A visual desktop application is available to manage team building interactively.
+
+### 1. Start the HTTP API Bridge
+The Electron app communicates with the Python use cases via a local HTTP server. Run the server using:
+
+```bash
+python -m mcp_server.src.application.api_server
+```
+
+This runs the server on `http://127.0.0.1:8002`.
+
+### 2. Start the Electron Application
+Navigate to the `desktop_app` directory, install dependencies, and start the app:
+
+```bash
+cd desktop_app
+npm install
+npm start
+```
+
 ## Important Rule
 
 Do not invent Pokemon data, and do not use external sources when the local PokeAPI should answer. If the AI says it queried an external source, first verify the local PokeAPI, data load, and `pokemon_tools` MCP server.
+

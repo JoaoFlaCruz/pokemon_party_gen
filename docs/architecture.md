@@ -5,6 +5,11 @@ This project provides Python utilities for querying a PokeAPI-compatible API, ra
 ## Structure
 
 ```text
+desktop_app/
+    main.js
+    index.html
+    styles.css
+    renderer.js
 mcp_server/
     src/
         main.py
@@ -21,6 +26,7 @@ mcp_server/
                 type_relations_tool.py
                 __init__.py
         application/
+            api_server.py
             use_cases/
                 build_team.py
                 rank_pokemon.py
@@ -229,6 +235,13 @@ CLI or MCP/tool (`ban_pokemon`)
 - Agent D: audits types, speeds, offensive and defensive stats, roles, weaknesses, and gaps.
 
 That flow follows `docs/agentic-team-flow.pdf` and should be used together with `docs/agentic-team-pattern.md` when an AI needs to complete a six-Pokemon team from user choices and strategy. The workflow includes reflection checkpoints after the initial team draft, strategic validation, balance audit, and before the final response, using `accept`, `refine`, `ask_user`, or `stop_with_pending` decisions to keep refinement bounded. The `build_pokemon_team` tool is the deterministic MCP implementation of that contract: it does not replace final human or agentic analysis, but it provides a validated, structured, and traceable base for agents.
+
+## Desktop App & HTTP Bridge
+
+To support a visual, interactive desktop workflow, the project includes:
+
+- **HTTP API Bridge (`mcp_server/src/application/api_server.py`)**: A lightweight HTTP JSON server built using Python's standard library `http.server`. It runs on port `8002` and acts as a bridge between the Electron client and the internal Python use cases (`build_pokemon_team`, `rank_pokemon`, `rank_pokemon_moveset`, etc.), supporting CORS for local calls.
+- **Electron Desktop App (`desktop_app/`)**: A cross-platform desktop UI built with Electron, HTML5, CSS3, and JavaScript. It connects to the API bridge, providing autocomplete search, visual primary/complementary trio cards, ace indicators, bottom sheets for moveset details, and type resistance grids.
 
 ## Maintenance Principles
 
