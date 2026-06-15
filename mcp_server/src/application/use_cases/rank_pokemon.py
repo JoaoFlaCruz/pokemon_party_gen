@@ -6,7 +6,11 @@ import argparse
 import json
 from typing import Any, Protocol
 
-from mcp_server.src.config.env import POKEAPI_BASE_URL, POKEAPI_MAX_WORKERS, POKEAPI_TIMEOUT
+from mcp_server.src.config.env import (
+    POKEAPI_BASE_URL,
+    POKEAPI_MAX_WORKERS,
+    POKEAPI_TIMEOUT,
+)
 from mcp_server.src.infrastructure.pokeapi import PokemonFetcher
 
 OFFENSE_AUTO = "auto"
@@ -40,8 +44,7 @@ class FetchesPokemon(Protocol):
         ability: str | None = None,
         move: str | None = None,
         max_workers: int = POKEAPI_MAX_WORKERS,
-    ) -> list[dict[str, Any]]:
-        ...
+    ) -> list[dict[str, Any]]: ...
 
 
 def normalize_types(types: list[str] | tuple[str, ...] | None) -> list[str] | None:
@@ -132,9 +135,7 @@ def score_pokemon(
         weighted_score_parts[stat_name] = value * multiplier
 
     ignored_stats = [
-        stat_name
-        for stat_name in PRIORITY_STAT_CHOICES
-        if stat_name not in score_parts
+        stat_name for stat_name in PRIORITY_STAT_CHOICES if stat_name not in score_parts
     ]
 
     result = {

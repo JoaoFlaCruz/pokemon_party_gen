@@ -263,7 +263,9 @@ def main() -> None:
     parser.add_argument("--type", dest="types", action="append", default=None)
     parser.add_argument("--offense-stat", choices=OFFENSE_CHOICES, default=OFFENSE_AUTO)
     parser.add_argument("--priority-stat", choices=PRIORITY_STAT_CHOICES, default=None)
-    parser.add_argument("--speed-mode", choices=SPEED_MODE_CHOICES, default=SPEED_IGNORE)
+    parser.add_argument(
+        "--speed-mode", choices=SPEED_MODE_CHOICES, default=SPEED_IGNORE
+    )
     parser.add_argument("--head-size", type=int, default=10)
     parser.add_argument("--max-workers", type=int, default=POKEAPI_MAX_WORKERS)
     parser.add_argument("--banned-db-path", default=BANNED_POKEMON_DB_PATH)

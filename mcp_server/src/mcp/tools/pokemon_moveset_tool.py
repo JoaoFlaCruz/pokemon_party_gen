@@ -66,8 +66,12 @@ def format_moveset_presentation(result: dict[str, Any], max_moves: int = 10) -> 
     """Build a concise text response suitable for an AI assistant."""
     pokemon = result["pokemon"]
     stats = pokemon.get("stats", {})
-    ranked_moves = [move for move in result.get("moves", []) if move.get("category") == "ranked"]
-    status_moves = [move for move in result.get("moves", []) if move.get("category") == "status"]
+    ranked_moves = [
+        move for move in result.get("moves", []) if move.get("category") == "ranked"
+    ]
+    status_moves = [
+        move for move in result.get("moves", []) if move.get("category") == "status"
+    ]
     lines = [
         f"Pokemon: {pokemon['name']} (ID {pokemon.get('id', 'desconhecido')})",
         (
@@ -92,7 +96,9 @@ def format_moveset_presentation(result: dict[str, Any], max_moves: int = 10) -> 
         )
 
     if not ranked_moves:
-        lines.append("- Nenhum golpe ofensivo compativel com o melhor atributo foi encontrado.")
+        lines.append(
+            "- Nenhum golpe ofensivo compativel com o melhor atributo foi encontrado."
+        )
 
     if status_moves:
         lines.append(f"Golpes de status listados ao fim: {len(status_moves)}.")

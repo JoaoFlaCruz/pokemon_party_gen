@@ -1,0 +1,39 @@
+name: Linting
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Ruff Lint & Format
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cache pip (ruff)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ruff-${{ runner.os }}-ruff==0.15.16
+
+      - name: Install Ruff
+        run: pip install ruff==0.15.16
+
+      - name: Check lint
+        run: ruff check .
+
+      - name: Check formatting
+        run: ruff format --check .
