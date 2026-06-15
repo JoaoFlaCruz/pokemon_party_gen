@@ -144,8 +144,11 @@ def load_banned_pokemon(db_path: str | Path | None) -> tuple[set[int], set[str]]
         return set(), set()
 
     try:
-        with sqlite3.connect(path) as connection:
+        connection = sqlite3.connect(path)
+        try:
             rows = connection.execute("SELECT id, name FROM banned_pokemon").fetchall()
+        finally:
+            connection.close()
     except sqlite3.Error as exc:
         raise RuntimeError(
             "Nao foi possivel ler a tabela banned_pokemon do banco de Pokemon proibidos."

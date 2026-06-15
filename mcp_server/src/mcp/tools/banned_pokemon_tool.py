@@ -85,22 +85,26 @@ def add_banned_pokemon(pokemon_id: int, pokemon_name: str, db_path: str | Path) 
         path.parent.mkdir(parents=True, exist_ok=True)
 
     try:
-        with sqlite3.connect(path) as connection:
-            connection.execute(
-                f"CREATE TABLE IF NOT EXISTS {BANNED_POKEMON_TABLE} "
-                "(id INTEGER NOT NULL, name TEXT NOT NULL)"
-            )
-            existing = connection.execute(
-                f"SELECT 1 FROM {BANNED_POKEMON_TABLE} "
-                "WHERE id = ? OR lower(name) = ? LIMIT 1",
-                (pokemon_id, pokemon_name),
-            ).fetchone()
-            if existing:
-                return False
-            connection.execute(
-                f"INSERT INTO {BANNED_POKEMON_TABLE} (id, name) VALUES (?, ?)",
-                (pokemon_id, pokemon_name),
-            )
+        connection = sqlite3.connect(path)
+        try:
+            with connection:
+                connection.execute(
+                    f"CREATE TABLE IF NOT EXISTS {BANNED_POKEMON_TABLE} "
+                    "(id INTEGER NOT NULL, name TEXT NOT NULL)"
+                )
+                existing = connection.execute(
+                    f"SELECT 1 FROM {BANNED_POKEMON_TABLE} "
+                    "WHERE id = ? OR lower(name) = ? LIMIT 1",
+                    (pokemon_id, pokemon_name),
+                ).fetchone()
+                if existing:
+                    return False
+                connection.execute(
+                    f"INSERT INTO {BANNED_POKEMON_TABLE} (id, name) VALUES (?, ?)",
+                    (pokemon_id, pokemon_name),
+                )
+        finally:
+            connection.close()
     except sqlite3.Error as exc:
         raise RuntimeError(
             "Nao foi possivel registrar o Pokemon no banco de exclusao."

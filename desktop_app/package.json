@@ -1,0 +1,12 @@
+{
+  "name": "pokemon-party-gen-desktop",
+  "version": "1.0.0",
+  "description": "Desktop UI for Pokemon Party Generator",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^42.4.0"
+  }
+}

@@ -44,10 +44,13 @@ class BanPokemonToolTests(unittest.TestCase):
                 db_path=db_path,
             )
 
-            with sqlite3.connect(db_path) as connection:
+            connection = sqlite3.connect(db_path)
+            try:
                 rows = connection.execute(
                     "SELECT id, name FROM banned_pokemon"
                 ).fetchall()
+            finally:
+                connection.close()
 
         self.assertEqual(result["tool_name"], "ban_pokemon")
         self.assertEqual(result["input"], {"id": 6, "name": "charizard"})
@@ -65,10 +68,13 @@ class BanPokemonToolTests(unittest.TestCase):
                 db_path=db_path,
             )
 
-            with sqlite3.connect(db_path) as connection:
+            connection = sqlite3.connect(db_path)
+            try:
                 count = connection.execute(
                     "SELECT count(*) FROM banned_pokemon"
                 ).fetchone()[0]
+            finally:
+                connection.close()
 
         self.assertFalse(result["data"]["created"])
         self.assertEqual(count, 1)
@@ -272,12 +278,16 @@ class PokemonRankingToolTests(unittest.TestCase):
     def test_execute_tool_filters_banned_pokemon_from_sqlite(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = Path(tmpdir) / "banned_pokemon.sqlite3"
-            with sqlite3.connect(db_path) as connection:
-                connection.execute("CREATE TABLE banned_pokemon (id INTEGER, name TEXT)")
-                connection.executemany(
-                    "INSERT INTO banned_pokemon (id, name) VALUES (?, ?)",
-                    [(3, "venusaur"), (6, "charizard")],
-                )
+            connection = sqlite3.connect(db_path)
+            try:
+                with connection:
+                    connection.execute("CREATE TABLE banned_pokemon (id INTEGER, name TEXT)")
+                    connection.executemany(
+                        "INSERT INTO banned_pokemon (id, name) VALUES (?, ?)",
+                        [(3, "venusaur"), (6, "charizard")],
+                    )
+            finally:
+                connection.close()
 
             result = execute_pokemon_ranking_tool(
                 {"head_size": 3},

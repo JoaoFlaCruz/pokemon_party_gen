@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pokemon Party Generator</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar / Left Panel -->
+    <aside class="sidebar">
+      <div class="logo-section">
+        <h1>Pokemon Party</h1>
+        <p>Advanced Team Builder & Ranker</p>
+      </div>
+
+      <!-- Strategy Inputs -->
+      <div class="form-group">
+        <label for="primary-strategy">Primary Strategy</label>
+        <input type="text" id="primary-strategy" value="balanced pressure" placeholder="e.g. offensive pressure">
+      </div>
+
+      <div class="form-group">
+        <label for="complementary-strategy">Complementary Strategy</label>
+        <input type="text" id="complementary-strategy" value="complementary coverage" placeholder="e.g. stall/defense">
+      </div>
+
+      <!-- Aces -->
+      <div class="form-group">
+        <label for="ace-inputs">Aces (Max 2, optional)</label>
+        <input type="text" id="ace-inputs" placeholder="bulbasaur, charmander" title="Separados por vírgula">
+      </div>
+
+      <!-- Autocomplete Search -->
+      <div class="form-group">
+        <label for="pokemon-search">Add User Pokemon (Locked)</label>
+        <div class="search-wrapper">
+          <input type="text" id="pokemon-search" placeholder="Type Pokemon name..." autocomplete="off">
+          <div id="suggestions" class="suggestions-list" style="display: none;"></div>
+        </div>
+      </div>
+
+      <!-- Selected Pokemon List -->
+      <div class="form-group">
+        <label>Selected Pokemon (<span id="selected-count">0</span>/6)</label>
+        <div id="selected-list" class="selected-pokemon-list">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <!-- Generate Button -->
+      <button id="btn-generate" class="btn-primary">Generate Team</button>
+    </aside>
+
+    <!-- Main Panel -->
+    <main class="main-dashboard">
+      <!-- Alerts & Pending Issues -->
+      <div id="alert-container" style="display: none;"></div>
+
+      <!-- Trios Grid -->
+      <div class="trios-grid">
+        <!-- Primary Trio -->
+        <div class="trio-container primary-trio">
+          <div class="trio-header">
+            <h2>Primary Trio</h2>
+            <span id="primary-strategy-badge" class="trio-strategy">Balanced Pressure</span>
+          </div>
+          <div id="primary-cards" class="trio-cards">
+            <!-- 3 Pokemon slots -->
+            <div class="pokemon-card empty-card"><p style="color: var(--text-muted);">Awaiting team generation...</p></div>
+          </div>
+        </div>
+
+        <!-- Complementary Trio -->
+        <div class="trio-container complementary-trio">
+          <div class="trio-header">
+            <h2>Complementary Trio</h2>
+            <span id="complementary-strategy-badge" class="trio-strategy">Complementary Coverage</span>
+          </div>
+          <div id="complementary-cards" class="trio-cards">
+            <!-- 3 Pokemon slots -->
+            <div class="pokemon-card empty-card"><p style="color: var(--text-muted);">Awaiting team generation...</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Team Analysis Dashboard -->
+      <div class="analysis-section">
+        <h2>Team Analysis</h2>
+        <div class="analysis-grid">
+          <!-- Strengths and Risks -->
+          <div class="bullets-col">
+            <div class="bullet-group strengths">
+              <h3>Strengths</h3>
+              <ul id="strengths-list" class="bullet-list">
+                <li>Generate a team to view strengths.</li>
+              </ul>
+            </div>
+            <div class="bullet-group risks">
+              <h3>Risks & Vulnerabilities</h3>
+              <ul id="risks-list" class="bullet-list">
+                <li>Generate a team to view potential risks.</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Type Relations Grid -->
+          <div class="type-matrix-card">
+            <h3>Type Resistances</h3>
+            <div id="type-grid" class="type-grid">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Detail Modal -->
+  <div id="detail-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modal-pokemon-name">Pokemon Moveset</h2>
+        <button id="modal-close" class="btn-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="modal-stats" style="margin-bottom: 15px;"></div>
+        <h3>Suggested Movesets</h3>
+        <div id="modal-moves" class="moves-list">
+          <!-- List of moves -->
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
