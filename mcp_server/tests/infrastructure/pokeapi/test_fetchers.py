@@ -10,6 +10,7 @@ from mcp_server.src.infrastructure.pokeapi.champions_dex_fetcher import (
     champions_species_from_payload,
 )
 from mcp_server.src.infrastructure.pokeapi.pokemon_fetcher import PokemonFetcher
+from mcp_server.src.infrastructure.pokeapi.pokemon_moves_fetcher import PokemonMovesFetcher
 from mcp_server.src.infrastructure.pokeapi.item_fetcher import ItemFetcher
 from mcp_server.src.infrastructure.pokeapi.type_relations_fetcher import TypeRelationsFetcher
 
@@ -124,6 +125,10 @@ class PokemonFetcherTests(unittest.TestCase):
                     "stats": [
                         {"stat": {"name": "hp"}, "base_stat": 80},
                         {"stat": {"name": "attack"}, "base_stat": 100},
+                        {"stat": {"name": "defense"}, "base_stat": 123},
+                        {"stat": {"name": "special-attack"}, "base_stat": 122},
+                        {"stat": {"name": "special-defense"}, "base_stat": 120},
+                        {"stat": {"name": "speed"}, "base_stat": 80},
                     ],
                 },
                 "pokemon-species/venusaur/": {
@@ -202,7 +207,21 @@ class PokemonFetcherTests(unittest.TestCase):
                     "name": "venusaur",
                     "species": {"name": "venusaur"},
                     "forms": [{"name": "venusaur"}],
-                    "stats": [{"stat": {"name": "hp"}, "base_stat": 80}],
+                    "types": [
+                        {"slot": 1, "type": {"name": "grass"}},
+                        {"slot": 2, "type": {"name": "poison"}},
+                    ],
+                    "abilities": [
+                        {"ability": {"name": "overgrow"}, "is_hidden": False, "slot": 1}
+                    ],
+                    "stats": [
+                        {"stat": {"name": "hp"}, "base_stat": 80},
+                        {"stat": {"name": "attack"}, "base_stat": 82},
+                        {"stat": {"name": "defense"}, "base_stat": 83},
+                        {"stat": {"name": "special-attack"}, "base_stat": 100},
+                        {"stat": {"name": "special-defense"}, "base_stat": 100},
+                        {"stat": {"name": "speed"}, "base_stat": 80},
+                    ],
                 },
                 "pokemon-species/venusaur/": {
                     "is_legendary": False,
@@ -221,9 +240,176 @@ class PokemonFetcherTests(unittest.TestCase):
         self.assertTrue(result[0]["champions_dex"])
         self.assertNotIn("pokemon/charizard/", fetcher.calls)
 
+    def test_fetch_pokemon_summary_excludes_incomplete_stats(self) -> None:
+        fetcher = FakePokemonFetcher(
+            {
+                "pokemon/archaludon/": {
+                    "id": 1018,
+                    "name": "archaludon",
+                    "species": {"name": "archaludon"},
+                    "forms": [{"name": "archaludon"}],
+                    "stats": [],
+                },
+                "pokemon-species/archaludon/": {
+                    "is_legendary": False,
+                    "is_mythical": False,
+                },
+                "pokemon-form/archaludon/": {
+                    "is_mega": False,
+                    "is_battle_only": False,
+                },
+            }
+        )
+
+        result = fetcher._fetch_pokemon_summary(
+            "archaludon",
+            champions_species={"archaludon"},
+        )
+
+        self.assertIsNone(result)
+
+    def test_fetch_pokemon_detail_reports_complete_champions_data(self) -> None:
+        fetcher = FakePokemonFetcher(
+            {
+                "pokemon/pelipper/": {
+                    "id": 279,
+                    "name": "pelipper",
+                    "species": {"name": "pelipper"},
+                    "forms": [{"name": "pelipper"}],
+                    "types": [
+                        {"slot": 1, "type": {"name": "water"}},
+                        {"slot": 2, "type": {"name": "flying"}},
+                    ],
+                    "abilities": [
+                        {"ability": {"name": "drizzle"}, "is_hidden": False, "slot": 1}
+                    ],
+                    "stats": [
+                        {"stat": {"name": "hp"}, "base_stat": 60},
+                        {"stat": {"name": "attack"}, "base_stat": 50},
+                        {"stat": {"name": "defense"}, "base_stat": 100},
+                        {"stat": {"name": "special-attack"}, "base_stat": 95},
+                        {"stat": {"name": "special-defense"}, "base_stat": 70},
+                        {"stat": {"name": "speed"}, "base_stat": 65},
+                    ],
+                },
+                "pokemon-species/pelipper/": {
+                    "is_legendary": False,
+                    "is_mythical": False,
+                },
+                "pokemon-form/pelipper/": {
+                    "is_mega": False,
+                    "is_battle_only": False,
+                },
+            }
+        )
+
+        result = fetcher.fetch_pokemon_detail("pelipper", allowed_species={"pelipper"})
+
+        self.assertTrue(result["complete"])
+        self.assertTrue(result["eligible"])
+        self.assertEqual(result["types"], ["water", "flying"])
+        self.assertEqual(result["abilities"][0]["name"], "drizzle")
+        self.assertTrue(result["champions_dex"])
+
+    def test_fetch_pokemon_detail_reports_missing_fields_and_scope(self) -> None:
+        fetcher = FakePokemonFetcher(
+            {
+                "pokemon/archaludon/": {
+                    "id": 1018,
+                    "name": "archaludon",
+                    "species": {"name": "archaludon"},
+                    "forms": [{"name": "archaludon"}],
+                    "types": [],
+                    "abilities": [],
+                    "stats": [],
+                },
+                "pokemon-species/archaludon/": {
+                    "is_legendary": False,
+                    "is_mythical": False,
+                },
+                "pokemon-form/archaludon/": {
+                    "is_mega": False,
+                    "is_battle_only": False,
+                },
+            }
+        )
+
+        result = fetcher.fetch_pokemon_detail("archaludon", allowed_species={"pelipper"})
+
+        self.assertFalse(result["complete"])
+        self.assertFalse(result["eligible"])
+        self.assertFalse(result["champions_dex"])
+        self.assertIn("types", result["missing_fields"])
+        self.assertIn("abilities", result["missing_fields"])
+
     def test_mega_item_name_handles_x_and_y_suffixes(self) -> None:
         self.assertEqual(PokemonFetcher._mega_item_name("charizard-mega-x"), "charizardite-x")
         self.assertEqual(PokemonFetcher._mega_item_name("mewtwo-mega-y"), "mewtwoite-y")
+
+
+class FakePokemonMovesFetcher(PokemonMovesFetcher):
+    def __init__(self, payloads: dict[str, dict[str, Any]]) -> None:
+        super().__init__()
+        self.payloads = payloads
+        self.calls: list[str] = []
+
+    def _get_json(self, path: str) -> dict[str, Any]:
+        self.calls.append(path)
+        return self.payloads[path]
+
+
+class PokemonMovesFetcherTests(unittest.TestCase):
+    def test_fetch_pokemon_moves_enriches_move_details(self) -> None:
+        fetcher = FakePokemonMovesFetcher(
+            {
+                "pokemon/bulbasaur/": {
+                    "id": 1,
+                    "name": "bulbasaur",
+                    "species": {"name": "bulbasaur"},
+                    "stats": [
+                        {"stat": {"name": "attack"}, "base_stat": 49},
+                        {"stat": {"name": "special-attack"}, "base_stat": 65},
+                    ],
+                    "moves": [
+                        {
+                            "move": {"name": "vine-whip"},
+                            "version_group_details": [{"level_learned_at": 3}],
+                        }
+                    ],
+                },
+                "move/vine-whip/": {
+                    "id": 22,
+                    "name": "vine-whip",
+                    "accuracy": 100,
+                    "effect_chance": None,
+                    "pp": 25,
+                    "priority": 0,
+                    "power": 45,
+                    "damage_class": {"name": "physical"},
+                    "generation": {"name": "generation-i"},
+                    "meta": {"category": {"name": "damage"}},
+                    "stat_changes": [],
+                    "target": {"name": "selected-pokemon"},
+                    "type": {"name": "grass"},
+                },
+            }
+        )
+
+        result = fetcher.fetch_pokemon_moves("Bulbasaur", max_workers=1)
+
+        self.assertEqual(fetcher.calls, ["pokemon/bulbasaur/", "move/vine-whip/"])
+        self.assertEqual(result["pokemon"]["id"], 1)
+        self.assertEqual(result["pokemon"]["name"], "bulbasaur")
+        self.assertEqual(result["pokemon"]["species"]["name"], "bulbasaur")
+        self.assertEqual(result["pokemon"]["stats"]["special-attack"], 65)
+        move = result["moves"][0]
+        self.assertEqual(move["move"]["name"], "vine-whip")
+        self.assertEqual(move["version_group_details"][0]["level_learned_at"], 3)
+        self.assertEqual(move["details"]["name"], "vine-whip")
+        self.assertEqual(move["details"]["accuracy"], 100)
+        self.assertEqual(move["details"]["power"], 45)
+        self.assertEqual(move["details"]["damage_class"]["name"], "physical")
+        self.assertEqual(move["details"]["type"]["name"], "grass")
 
 
 class FakeItemFetcher(ItemFetcher):

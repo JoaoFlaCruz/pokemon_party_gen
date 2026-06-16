@@ -21,6 +21,7 @@ Responsibilities:
 - fetch available moves and move data;
 - fetch held or general item data when the strategy involves itemization;
 - fetch type relations when another agent needs to evaluate coverage or weaknesses.
+- fulfill focused data requests from later agents when a required final member field is missing and the data is expected to be available from a project tool.
 
 Recommended tools:
 
@@ -28,12 +29,15 @@ Recommended tools:
 - `rank_pokemon_moveset`, to evaluate offensive moves for one Pokemon;
 - `list_items`, to query general items and descriptions;
 - `get_type_relations`, to query offensive and defensive type relations.
+- `validate_champions_legality`, to validate Pokemon, moves, abilities, and items against Champions scope and report structured blockers.
 
 Expected output:
 
 - structured and traceable data;
 - indication of missing or unresolved data;
 - no invented stats, types, moves, abilities, or items.
+- explicit confirmation of which required final member fields the data can support.
+- structured diagnostics for missing legality, strategy-role, Pokemon, move, ability, item, or source data.
 
 ## Agent B: Base Builder
 
@@ -80,6 +84,7 @@ Validation criteria:
 - user choices preserved;
 - reasonable role mix when possible;
 - objective justifications for AI-selected Pokemon;
+- complete member fields after Agent F runs;
 - pending issues declared when data is insufficient.
 
 Expected output:
@@ -149,7 +154,8 @@ Responsibilities:
 - recommend EV allocations, nature, and held item according to the Pokemon's role, stats, trio strategy, and team needs;
 - write a concise usage suggestion explaining how to use the Pokemon in the final strategy;
 - request missing move, item, Pokemon, or type data through Agent A when that data is expected to improve the set;
-- record missing or uncertain set details in `pending` instead of inventing unsupported moves, EVs, natures, or items.
+- record missing or uncertain set details in `pending` instead of inventing unsupported moves, EVs, natures, or items;
+- run a completeness check for each final Pokemon after set population.
 
 Guidelines:
 
@@ -158,6 +164,7 @@ Guidelines:
 - keep user-selected Pokemon locked while populating their final sets;
 - tie EVs and natures to role and strategy, because they are strategic recommendations rather than direct PokeAPI facts;
 - stop with pending details when additional data calls would not improve confidence.
+- do not present a Pokemon as complete unless it has `name`, `source`, `locked`, `role`, `trio`, `reason`, exactly four moves with reasons, EVs with stat names and point values, nature, item, usage suggestion, notes, and `replaces_gap` for AI selections.
 
 Expected output:
 
@@ -166,6 +173,7 @@ Expected output:
 - `nature`: recommended nature;
 - `item`: recommended held item;
 - `usage_suggestion`: how to use the Pokemon in the final strategy;
+- complete-member status for each Pokemon;
 - pending set details when validation or confidence is insufficient.
 
 ## Tool Boundary
@@ -210,24 +218,36 @@ Add `list_items` when itemization is requested. If items are not relevant, use t
 
 Do not use all five calls by default. Stop once the request is satisfied, the relevant pending issues are stated, and additional calls would not change the recommendation.
 
+## Champions Strategy And Weather Requests
+
+When the user asks for a Champions-only strategy that depends on a specific mechanic, such as rain with Archaludon, keep strategy construction inside the A-F workflow and use lower-level factual tools before final set population:
+
+1. Use `validate_champions_legality` for fixed Pokemon and key proposed entities when legality or completeness is uncertain.
+2. Let Agents B and E formulate the needed roles, such as rain setter, rain attacker, defensive pivot, coverage check, speed control, or win condition, from the user's request and validated facts.
+3. Use `rank_pokemon` with type, stat, and speed filters to find Champions-scoped candidates, then use `validate_champions_legality` and `rank_pokemon_moveset` to prove key abilities, moves, and role fit for selected candidates.
+4. Use `list_items` and `get_type_relations` to validate final item facts and matchup claims for selected candidates.
+5. If the tools return structured diagnostics such as `pokemon_not_found`, `outside_champions_scope`, `incomplete_data`, `source_unavailable`, `unsupported_validation`, or `no_eligible_candidates`, carry those diagnostics into `pending` instead of inferring missing facts externally.
+
+Do not call `search_champions_strategy` as a public shortcut. Strategy cases are an internal reasoning pattern for the AI: the agent should state and validate its role criteria through lower-level tools, while Agent B, C, D, E, and F remain responsible for team construction, validation, auditing, candidate correction, and final set population.
+
 ## Reflection Pattern
 
 Reflection is a concise decision checkpoint, not a separate tool call by default. Use it to decide whether the current team is good enough, whether one more focused call can improve it, or whether the user or data source must resolve a blocker.
 
 Use these decisions:
 
-- `accept`: the team satisfies the request, preserves user choices, has six validated members when enough data is available, has two distinct trios and aces, and has no blocker that another call is expected to improve.
+- `accept`: the team satisfies the request, preserves user choices, has six complete validated members, has two distinct trios and aces, and has no blocker that another call is expected to improve.
 - `refine`: one specific gap can be improved by one additional candidate, moveset, type, item, or correction call within the 1-to-5-call model.
 - `ask_user`: user constraints are ambiguous, conflict with fixed Pokemon, or require a preference that cannot be inferred from validated data.
-- `stop_with_pending`: data is unavailable, constraints prevent a complete confident team, or additional calls would not change the recommendation.
+- `stop_with_pending`: data is unavailable, role evidence cannot be proven after any useful focused validation, constraints prevent a complete confident team, or additional calls would not change the recommendation.
 
 Reflection checkpoints:
 
 1. After the initial team draft, check completion, preserved user choices, Champions-scope pending issues, trio structure, ace distinction, pending issues, and whether the user's request justifies additional calls.
 2. After Agent C validates strategy, choose whether to proceed, refine the candidate set, ask the user, or stop with pending issues.
 3. After Agent D audits balance, distinguish acceptable risk from a blocker that deserves one focused correction.
-4. After Agent F populates set details, confirm whether missing moves, EVs, natures, or items require one more data request through Agent A or should be declared in `pending`.
-5. Before the final response, confirm the answer satisfies the user request and declare relevant risks, uncertainty, or unresolved data.
+4. After Agent F populates set details, run the complete-member validation gate and confirm whether missing Pokemon, move, item, type, Champions, EV, nature, or usage fields require one more data request through Agent A or should be declared in `pending`.
+5. Before the final response, confirm the answer satisfies the user request, every final member is complete, and relevant risks, uncertainty, or unresolved data are declared.
 
 Loop-control rules:
 
@@ -236,6 +256,7 @@ Loop-control rules:
 - Correct around user-selected Pokemon unless the user explicitly confirms a replacement.
 - Do not repeat the same kind of refinement without new information.
 - When the call model is exhausted or another call would not change the recommendation, choose `accept`, `ask_user`, or `stop_with_pending`.
+- Never choose `accept` when a final Pokemon is missing a required complete-member field.
 
 ## Workflow Guideline
 
@@ -286,6 +307,15 @@ User input
             -> stop with the relevant question or pending issue
         -> if decision=accept:
             -> continue
+    -> Complete-member validation gate:
+        -> verify each final Pokemon has identity, ownership, role, trio, reason, four moves with reasons, EVs, nature, item, usage suggestion, notes, and AI gap coverage when applicable
+        -> if a required field can be filled by one focused tool call:
+            -> Agent A collects the missing data
+            -> Agent F updates affected set details
+        -> if a required field cannot be validated or justified:
+            -> stop_with_pending
+        -> if every member is complete:
+            -> continue
     -> Final reflection checkpoint:
         -> confirm decision=accept or stop with declared pending issues
         -> finalize response
@@ -301,8 +331,9 @@ The flow should finish only when:
 - the trios are complementary while preserving distinct identities;
 - all user Pokemon were preserved or recorded as pending;
 - each AI-selected Pokemon has a role, reason, and covered gap;
-- Agent F populated detailed sets for each final Pokemon when enough validated data and confidence are available;
+- Agent F populated complete detailed sets for each final Pokemon;
 - each populated set has four moves with reasons, EVs with named point values, nature, item, and usage suggestion;
+- no final Pokemon is missing a required complete-member field;
 - relevant risks and uncertainties are declared;
 - the final format follows `docs/agentic-team-pattern.md`.
 

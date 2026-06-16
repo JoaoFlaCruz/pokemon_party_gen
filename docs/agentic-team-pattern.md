@@ -27,6 +27,7 @@ output: 6 structured Pokemon, with N fixed by the user and 6 - N selected by the
 - Do not invent Pokemon, types, abilities, moves, stats, or items.
 - When data is needed, use the available project tools or a PokeAPI-compatible source.
 - When data or game-rule uncertainty remains, state the uncertainty instead of filling it with assumptions.
+- A final team may be accepted only when every final Pokemon has the complete member fields defined in this document. If any required field cannot be validated or strategy-justified, stop with `pending` instead of presenting the Pokemon as complete.
 
 ## User-Provided Pokemon
 
@@ -38,8 +39,13 @@ For each user-selected Pokemon, the AI must structure:
 - `source`: `user`.
 - `locked`: `true`.
 - `reason`: why it was preserved, usually "User-provided choice".
-- `role`: team role, when it can be inferred.
-- detailed set fields when enough validated data and strategy context are available: `moves`, `evs`, `nature`, `item`, and `usage_suggestion`.
+- `role`: team role.
+- `trio`: `primary` or `complementary`.
+- `moves`: exactly four validated moves, each with a strategic reason.
+- `evs`: named stat allocations with point values and strategic justification.
+- `nature`: recommended nature justified by role and strategy.
+- `item`: recommended held item validated from available item data or explicitly supported by the project data context.
+- `usage_suggestion`: concise guidance for the Pokemon in the team strategy.
 - `notes`: important observations such as coverage, redundancy, or gaps.
 
 If a provided Pokemon cannot be found or validated, the AI must:
@@ -47,6 +53,7 @@ If a provided Pokemon cannot be found or validated, the AI must:
 - keep the provided name in a pending section;
 - avoid inventing data for it;
 - ask for confirmation or suggest querying again with another identifier.
+- avoid presenting it as a complete final team member until validation succeeds.
 
 ## AI Pokemon Selection
 
@@ -58,8 +65,13 @@ Each AI-selected Pokemon must include:
 - `locked`: `false`.
 - `reason`: objective reason for the choice.
 - `role`: intended role in the team.
+- `trio`: `primary` or `complementary`.
 - `replaces_gap`: gap it helps cover.
-- detailed set fields when enough validated data and strategy context are available: `moves`, `evs`, `nature`, `item`, and `usage_suggestion`.
+- `moves`: exactly four validated moves, each with a strategic reason.
+- `evs`: named stat allocations with point values and strategic justification.
+- `nature`: recommended nature justified by role and strategy.
+- `item`: recommended held item validated from available item data or explicitly supported by the project data context.
+- `usage_suggestion`: concise guidance for the Pokemon in the team strategy.
 
 Selection may be called random only when there is a real choice among valid candidates. Even then, randomness must be controlled by criteria.
 
@@ -104,10 +116,12 @@ Priorities:
 
 When project tools are available:
 
-- Use `rank_pokemon` to find AI-selected candidates by type or stat profile. The MCP tool always uses Pokemon Champions scope.
+- Use `rank_pokemon` to find AI-selected candidates by type or stat profile. The MCP tool defaults to Pokemon Champions scope with `champions_only=true`; pass `champions_only=false` only when the request explicitly needs a broader non-Champions ranking.
 - Use `rank_pokemon_moveset` to evaluate a candidate's moves.
 - Use `get_type_relations` to audit offensive and defensive type interactions.
 - Use `list_items` to query general items, categories, and descriptions.
+- Use `validate_champions_legality` to validate Pokemon, move, ability, or item facts in Pokemon Champions scope.
+- For strategic roles such as rain setter, rain attacker, defensive pivot, coverage check, speed control, or win condition, construct the role criteria inside the agentic flow and prove them with lower-level tools. Do not offload role selection to a public strategy-search tool. Use source-backed filters, focused legality checks, moveset checks, and type relations to support the final team.
 
 ## Call-Depth Decision Guide
 
@@ -155,16 +169,39 @@ For each final Pokemon, include:
 
 Agent F must not invent moves, EVs, natures, or items. If a detail cannot be validated or confidently justified from available data, record the unresolved field in `pending` instead of filling it with unsupported content.
 
+## Complete Member Contract
+
+A final Pokemon member is complete only when it has:
+
+- `name`, `source`, `locked`, `role`, `trio`, and `reason`.
+- exactly four `moves`, each with `name` and `reason`.
+- `evs`, with named stats and point values.
+- `nature`.
+- `item`.
+- `usage_suggestion`.
+- `notes`, even when the list is empty.
+- `replaces_gap` for AI-selected Pokemon.
+
+Identity, stats, Champions membership, type, move, and item facts must come from project tools, a PokeAPI-compatible source, or injected fakes in tests. EVs, nature, held item choice, and usage guidance are strategic recommendations, so they must be tied to the Pokemon role, trio strategy, stats, moves, or team need.
+
+Do not use the final team format for incomplete members. If any required field is missing and an available tool can fill it, make one focused data request through the agentic flow. If the data remains unavailable or cannot be justified, return the best validated partial result with `pending` instead of choosing `accept`.
+
+When a tool returns structured diagnostics, preserve the useful diagnostic fields in `pending`: `code`, `message`, `entity`, `missing_fields`, `source`, `details`, and whether it is blocking. Common diagnostic codes include `pokemon_not_found`, `outside_champions_scope`, `incomplete_data`, `source_unavailable`, `unsupported_validation`, and `no_eligible_candidates`.
+
+For weather or other mechanic-specific teams, do not infer setters, abusers, legality, or item support from outside knowledge. Use legality, ranking, moveset, item, and type tools to prove the strategy criteria inside the A-F flow. Internal case criteria must be structured, limited to project-supported primitives, and as complete as the validated information allows; invalid or under-specified criteria go to `pending`.
+
 ## Reflection And Finalization
 
 Before presenting the final team, run a concise reflection checkpoint. The checkpoint should decide one of:
 
-- `accept`: present the team because it satisfies the request, preserves user choices, has six validated members when enough data is available, and has two distinct trios with two distinct aces.
+- `accept`: present the team because it satisfies the request, preserves user choices, has six complete validated members, and has two distinct trios with two distinct aces.
 - `refine`: make one more focused improvement because a specific candidate, moveset, type, item, or correction call is expected to improve the recommendation.
 - `ask_user`: stop and ask for clarification because user constraints are ambiguous, conflict with fixed Pokemon, or require a preference that cannot be inferred.
 - `stop_with_pending`: present the best validated result with pending issues because data is unavailable, constraints prevent a confident complete team, or another call would not change the recommendation.
 
 Reflection must preserve locked user Pokemon. If a user-selected Pokemon creates a weakness, correct around it unless the user explicitly confirms replacement. Do not keep refining by repeating the same kind of call without new information; stop at the lowest call count that satisfies the request and validation needs.
+
+The final reflection must include the complete member contract. If any final Pokemon is missing a required field, the decision cannot be `accept`; choose `refine` when one focused data request can fill the gap, `ask_user` when user confirmation is required, or `stop_with_pending` when the data source cannot support a complete result.
 
 The final response should expose only the useful result of reflection: relevant risks, unresolved data, needed user confirmation, or why the team is ready. It should not include a long private reasoning transcript.
 
