@@ -15,6 +15,7 @@ PHYSICAL = "physical"
 SPECIAL = "special"
 STATUS = "status"
 ACCURACY_WEIGHT = 1.4
+REQUIRED_OFFENSE_STATS = (ATTACK, SPECIAL_ATTACK)
 
 
 class FetchesPokemonMoves(Protocol):
@@ -28,6 +29,10 @@ class FetchesPokemonMoves(Protocol):
 
 def stat_value(stats: dict[str, int | None], stat_name: str) -> int:
     return stats.get(stat_name) or 0
+
+
+def has_required_offense_stats(stats: dict[str, int | None]) -> bool:
+    return all(isinstance(stats.get(stat_name), int) for stat_name in REQUIRED_OFFENSE_STATS)
 
 
 def best_offense(stats: dict[str, int | None]) -> tuple[str, str]:
@@ -93,6 +98,16 @@ def rank_moveset_data(data: dict[str, Any]) -> dict[str, Any]:
     """Rank fetched moves for one Pokemon using the requested moveset rule."""
     pokemon = data["pokemon"]
     stats = pokemon.get("stats", {})
+    if not has_required_offense_stats(stats):
+        pokemon_name = pokemon.get("name", "desconhecido")
+        raise RuntimeError(
+            f"Dados de stats ofensivos incompletos para Pokemon '{pokemon_name}'."
+        )
+
+    if not data.get("moves"):
+        pokemon_name = pokemon.get("name", "desconhecido")
+        raise RuntimeError(f"Nenhum golpe encontrado para Pokemon '{pokemon_name}'.")
+
     selected_stat, selected_damage_class = best_offense(stats)
     ranked_moves = []
     status_moves = []

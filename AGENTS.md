@@ -108,3 +108,8 @@ intent matches an OpenSpec workflow, even if the user does not name the skill:
 When adding a tool, register its schema, executor, MCP dispatch, presentation, and
 tests. When adding a fetcher, export it from `mcp_server/src/infrastructure/pokeapi/__init__.py`. Keep changes
 focused and avoid unrelated formatting churn.
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+<!-- SPECKIT END -->

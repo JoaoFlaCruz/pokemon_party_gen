@@ -20,6 +20,7 @@ class PokemonMoveSummary:
 
     pokemon_id: int
     pokemon_name: str
+    species: dict[str, Any]
     stats: dict[str, int | None]
     moves: list[dict[str, Any]]
 
@@ -29,6 +30,7 @@ class PokemonMoveSummary:
                 "id": self.pokemon_id,
                 "name": self.pokemon_name,
                 "stats": self.stats,
+                "species": self.species,
             },
             "moves": self.moves,
         }
@@ -96,6 +98,7 @@ class PokemonMovesFetcher:
         return PokemonMoveSummary(
             pokemon_id=payload["id"],
             pokemon_name=payload["name"],
+            species=payload.get("species") or {},
             stats=stats,
             moves=enriched_moves,
         ).to_dict()

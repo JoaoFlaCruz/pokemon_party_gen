@@ -6,16 +6,16 @@ from typing import Any
 
 __all__ = [
     "BAN_POKEMON_TOOL",
+    "CHAMPIONS_LEGALITY_TOOL",
     "ITEM_TOOL",
     "POKEMON_MOVESET_TOOL",
     "POKEMON_RANKING_TOOL",
-    "TEAM_BUILDER_TOOL",
     "TYPE_RELATIONS_TOOL",
     "execute_ban_pokemon_tool",
+    "execute_champions_legality_tool",
     "execute_item_tool",
     "execute_pokemon_moveset_tool",
     "execute_pokemon_ranking_tool",
-    "execute_team_builder_tool",
     "execute_type_relations_tool",
 ]
 
@@ -25,6 +25,10 @@ def __getattr__(name: str) -> Any:
         from . import banned_pokemon_tool
 
         return getattr(banned_pokemon_tool, name)
+    if name in {"CHAMPIONS_LEGALITY_TOOL", "execute_champions_legality_tool"}:
+        from . import champions_legality_tool
+
+        return getattr(champions_legality_tool, name)
     if name in {"ITEM_TOOL", "execute_item_tool"}:
         from . import item_tool
 
@@ -41,9 +45,5 @@ def __getattr__(name: str) -> Any:
         from . import pokemon_ranking_tool
 
         return getattr(pokemon_ranking_tool, name)
-    if name in {"TEAM_BUILDER_TOOL", "execute_team_builder_tool"}:
-        from . import team_builder_tool
-
-        return getattr(team_builder_tool, name)
 
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

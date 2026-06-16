@@ -8,6 +8,12 @@ from typing import Any, Callable
 
 from mcp_server.src.config.env import POKEAPI_MAX_WORKERS
 from mcp_server.src.application.use_cases.rank_moveset import rank_pokemon_moveset
+from mcp_server.src.shared.diagnostics import (
+    INCOMPLETE_DATA,
+    SOURCE_UNAVAILABLE,
+    diagnostic,
+    result_envelope,
+)
 
 POKEMON_MOVESET_TOOL = {
     "type": "function",
@@ -53,16 +59,52 @@ def execute_pokemon_moveset_tool(
         raise ValueError("'max_moves' deve ser um inteiro maior que zero.")
 
     selected_ranker = ranker or rank_pokemon_moveset
-    result = selected_ranker(pokemon)
-    return {
-        "tool_name": POKEMON_MOVESET_TOOL["function"]["name"],
-        "input": {"pokemon": pokemon, "max_moves": max_moves},
-        "data": result,
-        "presentation": format_moveset_presentation(result, max_moves=max_moves),
-    }
+    input_data = {"pokemon": pokemon, "max_moves": max_moves}
+    diagnostics = []
+    try:
+        result = selected_ranker(pokemon)
+    except RuntimeError as exc:
+        message = str(exc)
+        code = INCOMPLETE_DATA
+        if "API request failed" in message:
+            code = SOURCE_UNAVAILABLE
+        diagnostics.append(
+            diagnostic(
+                code,
+                message,
+                blocking=True,
+                entity=str(pokemon),
+                missing_fields=missing_moveset_fields(message),
+            )
+        )
+        result = {"pokemon": {"name": pokemon}, "moves": []}
+    return result_envelope(
+        tool_name=POKEMON_MOVESET_TOOL["function"]["name"],
+        input_data=input_data,
+        data=result,
+        presentation=format_moveset_presentation(
+            result,
+            max_moves=max_moves,
+            diagnostics=diagnostics,
+        ),
+        diagnostics=diagnostics,
+    )
 
 
-def format_moveset_presentation(result: dict[str, Any], max_moves: int = 10) -> str:
+def missing_moveset_fields(message: str) -> list[str]:
+    fields = []
+    if "stats ofensivos" in message:
+        fields.extend(["stats.attack", "stats.special-attack"])
+    if "Nenhum golpe" in message:
+        fields.append("moves")
+    return fields
+
+
+def format_moveset_presentation(
+    result: dict[str, Any],
+    max_moves: int = 10,
+    diagnostics: list[dict[str, Any]] | None = None,
+) -> str:
     """Build a concise text response suitable for an AI assistant."""
     pokemon = result["pokemon"]
     stats = pokemon.get("stats", {})
@@ -72,11 +114,11 @@ def format_moveset_presentation(result: dict[str, Any], max_moves: int = 10) -> 
         f"Pokemon: {pokemon['name']} (ID {pokemon.get('id', 'desconhecido')})",
         (
             "Foco ofensivo: "
-            f"{result['selected_offense_stat']} "
-            f"({result['selected_damage_class']})"
+            f"{result.get('selected_offense_stat', 'indisponivel')} "
+            f"({result.get('selected_damage_class', 'indisponivel')})"
         ),
         f"Stats: attack={stats.get('attack')}, special-attack={stats.get('special-attack')}",
-        f"Regra de ranking: {result['ranking_rule']}",
+        f"Regra de ranking: {result.get('ranking_rule', 'indisponivel')}",
         "Melhores golpes:",
     ]
 
@@ -96,6 +138,10 @@ def format_moveset_presentation(result: dict[str, Any], max_moves: int = 10) -> 
 
     if status_moves:
         lines.append(f"Golpes de status listados ao fim: {len(status_moves)}.")
+    for item in diagnostics or []:
+        lines.append(
+            f"Diagnostico: {item.get('code')} - {item.get('message')}"
+        )
 
     return "\n".join(lines)
 

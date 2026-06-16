@@ -8,22 +8,22 @@ import unittest
 from pathlib import Path
 from typing import Any
 
-import mcp_server.src.mcp.server as pokemon_mcp_server
 from mcp_server.src.mcp.tools import (
     BAN_POKEMON_TOOL,
+    CHAMPIONS_LEGALITY_TOOL,
     ITEM_TOOL,
     POKEMON_MOVESET_TOOL,
     POKEMON_RANKING_TOOL,
-    TEAM_BUILDER_TOOL,
     TYPE_RELATIONS_TOOL,
     execute_ban_pokemon_tool,
+    execute_champions_legality_tool,
     execute_item_tool,
     execute_pokemon_moveset_tool,
     execute_pokemon_ranking_tool,
-    execute_team_builder_tool,
     execute_type_relations_tool,
 )
-from mcp_server.src.mcp.server import handle_message, tool_definition, tool_definitions
+from mcp_server.src.mcp import server
+from mcp_server.src.mcp.server import call_tool, handle_message, tool_definition, tool_definitions
 
 
 class BanPokemonToolTests(unittest.TestCase):
@@ -44,13 +44,10 @@ class BanPokemonToolTests(unittest.TestCase):
                 db_path=db_path,
             )
 
-            connection = sqlite3.connect(db_path)
-            try:
+            with sqlite3.connect(db_path) as connection:
                 rows = connection.execute(
                     "SELECT id, name FROM banned_pokemon"
                 ).fetchall()
-            finally:
-                connection.close()
 
         self.assertEqual(result["tool_name"], "ban_pokemon")
         self.assertEqual(result["input"], {"id": 6, "name": "charizard"})
@@ -68,13 +65,10 @@ class BanPokemonToolTests(unittest.TestCase):
                 db_path=db_path,
             )
 
-            connection = sqlite3.connect(db_path)
-            try:
+            with sqlite3.connect(db_path) as connection:
                 count = connection.execute(
                     "SELECT count(*) FROM banned_pokemon"
                 ).fetchone()[0]
-            finally:
-                connection.close()
 
         self.assertFalse(result["data"]["created"])
         self.assertEqual(count, 1)
@@ -105,6 +99,18 @@ class ItemToolTests(unittest.TestCase):
         self.assertEqual(result["tool_name"], "list_items")
         self.assertEqual(result["input"], {"limit": 1, "offset": 0})
         self.assertEqual(result["data"]["items"][0]["name"], "oran-berry")
+        item = result["data"]["items"][0]
+        self.assertEqual(result["data"]["count"], 2)
+        self.assertEqual(result["data"]["limit"], 1)
+        self.assertEqual(result["data"]["offset"], 0)
+        self.assertEqual(item["category"]["name"], "medicine")
+        self.assertEqual(item["cost"], 80)
+        self.assertEqual(item["fling_power"], 10)
+        self.assertEqual(item["fling_effect"]["name"], "berry-effect")
+        self.assertEqual(item["attributes"][0]["name"], "holdable")
+        self.assertEqual(item["effect_entries"][1]["effect"], "Restores 10 HP.")
+        self.assertEqual(item["flavor_text_entries"][0]["text"], "A berry.")
+        self.assertEqual(item["sprites"]["default"], "item.png")
         self.assertIn("Itens encontrados: 1", result["presentation"])
         self.assertIn("oran-berry", result["presentation"])
         self.assertIn("Restores 10 HP.", result["presentation"])
@@ -133,6 +139,7 @@ class ItemToolTests(unittest.TestCase):
                     "name": "oran-berry",
                     "cost": 80,
                     "fling_power": 10,
+                    "fling_effect": {"name": "berry-effect"},
                     "attributes": [{"name": "holdable"}],
                     "category": {"name": "medicine"},
                     "effect_entries": [
@@ -145,10 +152,59 @@ class ItemToolTests(unittest.TestCase):
                             "language": {"name": "en"},
                         },
                     ],
-                    "flavor_text_entries": [],
+                    "flavor_text_entries": [{"text": "A berry.", "language": {"name": "en"}}],
+                    "sprites": {"default": "item.png"},
                 }
             ],
         }
+
+
+class ChampionsLegalityToolTests(unittest.TestCase):
+    def test_tool_schema_requires_entity_type_and_entity(self) -> None:
+        function = CHAMPIONS_LEGALITY_TOOL["function"]
+
+        self.assertEqual(function["name"], "validate_champions_legality")
+        self.assertEqual(function["parameters"]["required"], ["entity_type", "entity"])
+        self.assertIn("pokemon", function["parameters"]["properties"])
+
+    def test_execute_tool_returns_structured_legality(self) -> None:
+        result = execute_champions_legality_tool(
+            {"entity_type": "pokemon", "entity": "archaludon"},
+            validator=lambda entity_type, entity, pokemon: {
+                "entity_type": entity_type,
+                "entity": entity,
+                "checked_scope": "pokemon_champions",
+                "legal": True,
+                "eligible": True,
+                "facts": {"pokemon": {"name": "archaludon"}},
+                "diagnostics": [],
+                "blocking": False,
+            },
+        )
+
+        self.assertEqual(result["tool_name"], "validate_champions_legality")
+        self.assertEqual(result["input"]["entity"], "archaludon")
+        self.assertTrue(result["data"]["eligible"])
+        self.assertEqual(result["diagnostics"], [])
+        self.assertIn("Elegivel: True", result["presentation"])
+
+    def test_execute_tool_returns_diagnostics(self) -> None:
+        result = execute_champions_legality_tool(
+            {"entity_type": "pokemon", "entity": "missing"},
+            validator=lambda entity_type, entity, pokemon: {
+                "entity_type": entity_type,
+                "entity": entity,
+                "checked_scope": "pokemon_champions",
+                "legal": False,
+                "eligible": False,
+                "facts": {},
+                "diagnostics": [{"code": "pokemon_not_found", "message": "missing", "blocking": True}],
+                "blocking": True,
+            },
+        )
+
+        self.assertEqual(result["diagnostics"][0]["code"], "pokemon_not_found")
+        self.assertIn("pokemon_not_found", result["presentation"])
 
 
 class PokemonMovesetToolTests(unittest.TestCase):
@@ -168,6 +224,20 @@ class PokemonMovesetToolTests(unittest.TestCase):
         self.assertEqual(result["tool_name"], "rank_pokemon_moveset")
         self.assertEqual(result["input"], {"pokemon": "bulbasaur", "max_moves": 1})
         self.assertEqual(result["data"]["pokemon"]["name"], "bulbasaur")
+        self.assertEqual(result["data"]["pokemon"]["id"], 1)
+        self.assertEqual(result["data"]["pokemon"]["stats"]["special-attack"], 65)
+        move = result["data"]["moves"][0]
+        self.assertEqual(move["name"], "petal-dance")
+        self.assertEqual(move["category"], "ranked")
+        self.assertEqual(move["rank"], 1)
+        self.assertEqual(move["score"], 260.0)
+        self.assertEqual(move["accuracy"], 100)
+        self.assertEqual(move["power"], 120)
+        self.assertEqual(move["damage_class"], "special")
+        self.assertEqual(move["type"], "grass")
+        self.assertEqual(move["pp"], 10)
+        self.assertEqual(move["priority"], 0)
+        self.assertEqual(move["version_group_details"][0]["level_learned_at"], 0)
         self.assertIn("Pokemon: bulbasaur", result["presentation"])
         self.assertIn("#1 petal-dance", result["presentation"])
         self.assertNotIn("#2 solar-beam", result["presentation"])
@@ -203,7 +273,7 @@ class PokemonMovesetToolTests(unittest.TestCase):
                     "type": "grass",
                     "pp": 10,
                     "priority": 0,
-                    "version_group_details": [],
+                    "version_group_details": [{"level_learned_at": 0}],
                 },
                 {
                     "rank": 2,
@@ -246,6 +316,11 @@ class PokemonRankingToolTests(unittest.TestCase):
         self.assertIn("priority_stat", function["parameters"]["properties"])
         self.assertIn("speed_mode", function["parameters"]["properties"])
         self.assertIn("head_size", function["parameters"]["properties"])
+        self.assertIn("champions_only", function["parameters"]["properties"])
+        self.assertEqual(
+            function["parameters"]["properties"]["champions_only"]["type"],
+            "boolean",
+        )
 
     def test_execute_tool_returns_data_and_presentation(self) -> None:
         result = execute_pokemon_ranking_tool(
@@ -268,26 +343,32 @@ class PokemonRankingToolTests(unittest.TestCase):
                 "priority_stat": "special-defense",
                 "speed_mode": "high",
                 "head_size": 1,
+                "champions_only": True,
             },
         )
         self.assertEqual(result["data"][0]["name"], "venusaur")
+        pokemon = result["data"][0]
+        self.assertEqual(pokemon["id"], 3)
+        self.assertEqual(pokemon["stats"]["special-attack"], 100)
+        self.assertEqual(pokemon["selected_offense_stat"], "special-attack")
+        self.assertEqual(pokemon["score_parts"]["hp"], 80)
+        self.assertEqual(pokemon["weighted_score_parts"]["special-defense"], 140.0)
+        self.assertEqual(pokemon["species"]["name"], "venusaur")
+        self.assertTrue(pokemon["champions_dex"])
         self.assertIn("Filtro de tipos: grass, poison", result["presentation"])
         self.assertIn("#1 venusaur", result["presentation"])
+        self.assertIn("Escopo Champions: ativado", result["presentation"])
         self.assertNotIn("mega_item=", result["presentation"])
 
     def test_execute_tool_filters_banned_pokemon_from_sqlite(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = Path(tmpdir) / "banned_pokemon.sqlite3"
-            connection = sqlite3.connect(db_path)
-            try:
-                with connection:
-                    connection.execute("CREATE TABLE banned_pokemon (id INTEGER, name TEXT)")
-                    connection.executemany(
-                        "INSERT INTO banned_pokemon (id, name) VALUES (?, ?)",
-                        [(3, "venusaur"), (6, "charizard")],
-                    )
-            finally:
-                connection.close()
+            with sqlite3.connect(db_path) as connection:
+                connection.execute("CREATE TABLE banned_pokemon (id INTEGER, name TEXT)")
+                connection.executemany(
+                    "INSERT INTO banned_pokemon (id, name) VALUES (?, ?)",
+                    [(3, "venusaur"), (6, "charizard")],
+                )
 
             result = execute_pokemon_ranking_tool(
                 {"head_size": 3},
@@ -322,6 +403,39 @@ class PokemonRankingToolTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             execute_pokemon_ranking_tool({"head_size": 0}, ranker=self.fake_ranker)
 
+        with self.assertRaises(ValueError):
+            execute_pokemon_ranking_tool({"champions_only": "false"}, ranker=self.fake_ranker)
+
+    def test_execute_tool_accepts_champions_scope_flag(self) -> None:
+        calls = []
+
+        def ranker(
+            types: list[str] | None,
+            offense_stat: str,
+            priority_stat: str | None,
+            speed_mode: str,
+            head_size: int,
+            champions_only: bool,
+        ) -> list[dict[str, Any]]:
+            calls.append(champions_only)
+            return self.fake_ranker(
+                types,
+                offense_stat,
+                priority_stat,
+                speed_mode,
+                head_size,
+                champions_only,
+            )
+
+        result = execute_pokemon_ranking_tool(
+            {"champions_only": False},
+            ranker=ranker,
+        )
+
+        self.assertEqual(calls, [False])
+        self.assertFalse(result["input"]["champions_only"])
+        self.assertIn("Escopo Champions: desativado", result["presentation"])
+
     @staticmethod
     def fake_ranker(
         types: list[str] | None,
@@ -329,6 +443,7 @@ class PokemonRankingToolTests(unittest.TestCase):
         priority_stat: str | None,
         speed_mode: str,
         head_size: int,
+        champions_only: bool,
     ) -> list[dict[str, Any]]:
         return [
             {
@@ -356,6 +471,8 @@ class PokemonRankingToolTests(unittest.TestCase):
                     "special-attack": 100,
                     "speed": 80 if speed_mode != "ignore" else None,
                 },
+                "champions_dex": True,
+                "species": {"name": "venusaur"},
                 "stats": {
                     "hp": 80,
                     "attack": 82,
@@ -374,6 +491,7 @@ class PokemonRankingToolTests(unittest.TestCase):
         priority_stat: str | None,
         speed_mode: str,
         head_size: int,
+        champions_only: bool,
     ) -> list[dict[str, Any]]:
         return [
             make_ranked_pokemon(3, "venusaur", priority_stat, speed_mode),
@@ -441,6 +559,13 @@ class TypeRelationsToolTests(unittest.TestCase):
         self.assertEqual(result["tool_name"], "get_type_relations")
         self.assertEqual(result["input"], {"type": "fire"})
         self.assertEqual(result["data"]["type"]["name"], "fire")
+        self.assertEqual(result["data"]["type"]["id"], 10)
+        self.assertEqual(result["data"]["offensive"]["super_effective_against"], ["grass", "ice"])
+        self.assertEqual(result["data"]["offensive"]["weak_against"], ["water"])
+        self.assertEqual(result["data"]["offensive"]["no_effect_against"], [])
+        self.assertEqual(result["data"]["defensive"]["weak_to"], ["water", "rock"])
+        self.assertEqual(result["data"]["defensive"]["resists"], ["fire", "grass"])
+        self.assertEqual(result["data"]["defensive"]["immune_to"], [])
         self.assertIn("Tipo: fire", result["presentation"])
         self.assertIn("Superefetivo contra: grass, ice", result["presentation"])
         self.assertIn("Sofre superefetivo de: water, rock", result["presentation"])
@@ -470,94 +595,6 @@ class TypeRelationsToolTests(unittest.TestCase):
         }
 
 
-class TeamBuilderToolTests(unittest.TestCase):
-    def test_tool_schema_accepts_team_arguments(self) -> None:
-        function = TEAM_BUILDER_TOOL["function"]
-
-        self.assertEqual(function["name"], "build_pokemon_team")
-        self.assertNotIn("required", function["parameters"])
-        self.assertIn("pokemon", function["parameters"]["properties"])
-        self.assertIn("aces", function["parameters"]["properties"])
-        self.assertIn("primary_strategy", function["parameters"]["properties"])
-        self.assertIn("complementary_strategy", function["parameters"]["properties"])
-
-    def test_execute_tool_returns_structured_data_and_presentation(self) -> None:
-        result = execute_team_builder_tool(
-            {
-                "pokemon": [" Pikachu "],
-                "aces": ["pikachu"],
-                "primary_strategy": "speed",
-            },
-            builder=self.fake_builder,
-        )
-
-        self.assertEqual(result["tool_name"], "build_pokemon_team")
-        self.assertEqual(result["input"]["pokemon"], ["pikachu"])
-        self.assertEqual(result["input"]["aces"], ["pikachu"])
-        self.assertEqual(result["data"]["team"][0]["name"], "pikachu")
-        self.assertIn("Time Pokemon: completo", result["presentation"])
-        self.assertIn("source=user", result["presentation"])
-
-    def test_execute_tool_validates_arguments(self) -> None:
-        with self.assertRaises(ValueError):
-            execute_team_builder_tool({"pokemon": "pikachu"}, builder=self.fake_builder)
-
-        with self.assertRaises(ValueError):
-            execute_team_builder_tool({"pokemon": [""]}, builder=self.fake_builder)
-
-        with self.assertRaises(ValueError):
-            execute_team_builder_tool({"aces": ["a", "b", "c"]}, builder=self.fake_builder)
-
-        with self.assertRaises(ValueError):
-            execute_team_builder_tool({"primary_strategy": 1}, builder=self.fake_builder)
-
-    @staticmethod
-    def fake_builder(
-        pokemon: list[str | int] | None,
-        primary_strategy: str | None,
-        complementary_strategy: str | None,
-        aces: list[str | int] | None,
-    ) -> dict[str, Any]:
-        return {
-            "team_size": 6,
-            "is_complete": True,
-            "user_requested": pokemon or [],
-            "team_structure": {
-                "primary_trio_strategy": primary_strategy or "balanced",
-                "complementary_trio_strategy": complementary_strategy or "coverage",
-            },
-            "team": [
-                {
-                    "name": "pikachu",
-                    "source": "user",
-                    "locked": True,
-                    "role": "ace",
-                    "trio": "primary",
-                    "reason": "Escolha informada pelo usuario.",
-                    "notes": [],
-                },
-                {
-                    "name": "charizard",
-                    "source": "ai",
-                    "locked": False,
-                    "role": "physical-attacker",
-                    "trio": "primary",
-                    "reason": "Selecionado entre candidatos validados pelo ranking.",
-                    "replaces_gap": "suporte do trio principal",
-                    "notes": [],
-                },
-            ],
-            "analysis": {
-                "strengths": [],
-                "trio_differences": [],
-                "trio_complementarity": [],
-                "risks": [],
-                "selection_criteria": [],
-            },
-            "pending": [],
-        }
-
-
 class PokemonMcpServerTests(unittest.TestCase):
     def test_initialize_and_tools_list(self) -> None:
         initialize = handle_message(
@@ -573,40 +610,83 @@ class PokemonMcpServerTests(unittest.TestCase):
         self.assertEqual(initialize["result"]["protocolVersion"], "test-version")
         self.assertEqual(tools["result"]["tools"], tool_definitions())
         self.assertIn(tool_definition(BAN_POKEMON_TOOL), tools["result"]["tools"])
+        self.assertIn(tool_definition(CHAMPIONS_LEGALITY_TOOL), tools["result"]["tools"])
         self.assertIn(tool_definition(ITEM_TOOL), tools["result"]["tools"])
         self.assertIn(tool_definition(POKEMON_MOVESET_TOOL), tools["result"]["tools"])
         self.assertIn(tool_definition(POKEMON_RANKING_TOOL), tools["result"]["tools"])
-        self.assertIn(tool_definition(TEAM_BUILDER_TOOL), tools["result"]["tools"])
         self.assertIn(tool_definition(TYPE_RELATIONS_TOOL), tools["result"]["tools"])
+        tool_names = {tool["name"] for tool in tools["result"]["tools"]}
+        self.assertNotIn("build_pokemon_team", tool_names)
+        self.assertNotIn("search_champions_strategy", tool_names)
 
 
-    def test_team_builder_tool_dispatch_returns_structured_content(self) -> None:
-        original = pokemon_mcp_server.TOOLS["build_pokemon_team"]
+    def test_team_builder_tool_dispatch_returns_unknown_tool_error(self) -> None:
+        response = handle_message(
+            {
+                "jsonrpc": "2.0",
+                "id": 4,
+                "method": "tools/call",
+                "params": {"name": "build_pokemon_team", "arguments": {"pokemon": ["pikachu"]}},
+            }
+        )
 
-        def fake_executor(arguments: dict[str, Any]) -> dict[str, Any]:
+        self.assertEqual(response["error"]["code"], -32602)
+        self.assertIn("Tool desconhecida: build_pokemon_team", response["error"]["message"])
+
+    def test_champions_strategy_tool_dispatch_returns_unknown_tool_error(self) -> None:
+        response = handle_message(
+            {
+                "jsonrpc": "2.0",
+                "id": 5,
+                "method": "tools/call",
+                "params": {"name": "search_champions_strategy", "arguments": {"role": "rain-setter"}},
+            }
+        )
+
+        self.assertEqual(response["error"]["code"], -32602)
+        self.assertIn("Tool desconhecida: search_champions_strategy", response["error"]["message"])
+
+    def test_tool_call_preserves_full_structured_content(self) -> None:
+        original_tools = server.TOOLS
+
+        def executor(arguments: dict[str, Any]) -> dict[str, Any]:
             return {
-                "tool_name": "build_pokemon_team",
+                "tool_name": "test_tool",
                 "input": arguments,
-                "data": {"team_size": 6, "team": []},
-                "presentation": "fake team",
+                "data": {"value": 42},
+                "presentation": "structured summary",
             }
 
         try:
-            pokemon_mcp_server.TOOLS["build_pokemon_team"] = (TEAM_BUILDER_TOOL, fake_executor)
-            response = handle_message(
-                {
-                    "jsonrpc": "2.0",
-                    "id": 4,
-                    "method": "tools/call",
-                    "params": {"name": "build_pokemon_team", "arguments": {"pokemon": ["pikachu"]}},
-                }
-            )
+            server.TOOLS = {
+                "test_tool": (
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": "test_tool",
+                            "description": "Test tool.",
+                            "parameters": {"type": "object"},
+                        },
+                    },
+                    executor,
+                )
+            }
+            result = call_tool({"name": "test_tool", "arguments": {"x": 1}})
         finally:
-            pokemon_mcp_server.TOOLS["build_pokemon_team"] = original
+            server.TOOLS = original_tools
 
-        self.assertEqual(response["result"]["content"][0]["text"], "fake team")
-        self.assertEqual(response["result"]["structuredContent"]["tool_name"], "build_pokemon_team")
-        self.assertEqual(response["result"]["structuredContent"]["data"], {"team_size": 6, "team": []})
+        self.assertEqual(
+            result["structuredContent"],
+            {
+                "tool_name": "test_tool",
+                "input": {"x": 1},
+                "data": {"value": 42},
+                "presentation": "structured summary",
+                "diagnostics": [],
+            },
+        )
+        self.assertEqual(result["content"][0]["text"], "structured summary")
+        self.assertIn('"value": 42', result["content"][1]["text"])
 
     def test_unknown_tool_returns_json_rpc_error(self) -> None:
         response = handle_message(

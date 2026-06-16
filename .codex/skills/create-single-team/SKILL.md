@@ -26,11 +26,15 @@ Se algum desses dados ja estiver claro na conversa, reutilizar o dado informado 
 
 ## Fluxo Agentico
 
-Seguir o fluxo definido em `docs/fluxograma_agentico.pdf` e detalhado em
-`docs/fluxo-agentico-times.md`:
+Seguir o fluxo definido em `docs/agentic-team-flow.md` e o padrao de resposta
+em `docs/agentic-team-pattern.md`. `build_pokemon_team` nao e uma tool MCP
+ativa e nao deve ser usado para construcao de times; a montagem e
+responsabilidade do fluxo agentico com tools de dados de nivel inferior.
 
 1. Definir o pedido inicial: confirmar ace principal, estrategia base e quantidade de times.
 2. Agente A: coletar dados dos Pokemon informados, golpes, itens e relacoes de tipo quando necessarias.
+   - Para pedidos Pokemon Champions only, usar `validate_champions_legality` quando houver duvida sobre legalidade, completude de dados, golpes, habilidades ou itens.
+   - Para pedidos de clima ou mecanica especifica, construir os papeis dentro do fluxo A-F, como rain setter, rain attacker, pivots defensivos, checks de cobertura, speed control e win condition. Nao chamar `search_champions_strategy`; a selecao estrategica e responsabilidade dos agentes. Usar `rank_pokemon`, `rank_pokemon_moveset`, `validate_champions_legality`, `get_type_relations` e `list_items` para provar criterios de ability, golpe, tipo, stat profile, item e matchup sem inventar fatos.
 3. Agente B: montar o trio principal com o ace informado, estrategia, movesets, habilidades, distribuicao de stats e itens, preservando as escolhas do usuario.
 4. Agente E: selecionar ou confirmar um segundo ace com estrategia distinta para o trio complementar.
 5. Agente E: listar candidatos para completar os dois trios e reduzir fraquezas antes da validacao final.
@@ -39,6 +43,10 @@ Seguir o fluxo definido em `docs/fluxograma_agentico.pdf` e detalhado em
 8. Agente C: validar regras de equipe, repeticoes de Pokemon, repeticoes de item quando aplicavel, dois aces e coesao entre Pokemon.
 9. Agente D: auditar tipos, velocidades, stats de ataque e defesa, papeis, diferenca entre trios e fraquezas do time.
 10. Quando C ou D apontarem lacuna relevante, retornar ao Agente E para selecionar substitutos ou ajustes e repetir o ciclo ate o time ficar valido ou a pendencia precisar de confirmacao do usuario.
+11. Agente F: popular os detalhes finais de cada Pokemon de acordo com role, trio, estrategia e dados validados: quatro golpes com motivo, EVs com pontos, natureza, item e sugestao de uso.
+12. Agente F deve executar uma validacao de completude para cada Pokemon final. Um Pokemon final so esta completo quando tiver nome, source, locked, role, trio, motivo, quatro golpes com motivo, EVs com stats e pontos, natureza, item, sugestao, notes e, para escolhas da IA, a lacuna coberta.
+13. Se faltar um dado obrigatorio e uma tool de dados puder resolver a lacuna com uma chamada focada, retornar ao Agente A para coletar esse dado e entao atualizar os detalhes com o Agente F.
+14. Se uma troca de Pokemon, role, estrategia de trio ou lacuna prioritaria acontecer apos refinamento, o Agente F deve revisar os Pokemon afetados antes da resposta final.
 
 Cada time final deve unir:
 
@@ -47,7 +55,9 @@ Cada time final deve unir:
 - estrategias diferentes entre os dois trios;
 - complementaridade defensiva, ofensiva ou utilitaria entre os trios;
 - exatamente 6 Pokemon;
-- movesets, habilidades, distribuicao de stats e itens quando os dados forem validados ou quando a estrategia exigir esse nivel de detalhe.
+- detalhes finais completos populados pelo Agente F;
+- nenhuma entrada final aceita com campo obrigatorio ausente;
+- pendencias declaradas quando golpes, EVs, natureza, item ou outro campo obrigatorio nao puderem ser validados ou justificados.
 
 ## Estrutura Dos Trios
 
@@ -79,7 +89,9 @@ Priorizar:
 - variedade real entre times para comparacao;
 - diferenca clara entre trio principal e trio complementar.
 
-Nao inventar Pokemon, tipos, habilidades, golpes, stats ou itens. Quando dados reais forem necessarios, usar as tools do projeto ou uma fonte compativel com PokeAPI. Se a ferramenta disponivel nao retornar um dado exigido, declarar a pendencia em vez de preencher por suposicao.
+Nao inventar Pokemon, tipos, habilidades, golpes, stats, EVs, naturezas ou itens. Quando dados reais forem necessarios, usar as tools do projeto ou uma fonte compativel com PokeAPI. Se a ferramenta disponivel nao retornar um dado exigido, declarar a pendencia em vez de preencher por suposicao. Nao apresentar um time como final aceito quando qualquer Pokemon estiver incompleto; nesse caso, parar com `Pendencias` ou pedir confirmacao do usuario.
+
+Para chuva, sol, clima, terrain ou outra estrategia baseada em mecanica, nao inferir setters, abusers, legalidade, golpes, habilidades ou itens por conhecimento externo. Validar os Pokemon fixos e entidades propostas com `validate_champions_legality`, buscar candidatos com tools factuais de nivel inferior, e carregar diagnosticos estruturados como `pokemon_not_found`, `outside_champions_scope`, `incomplete_data`, `source_unavailable`, `unsupported_validation` ou `no_eligible_candidates` para `Pendencias` quando bloquearem o time final. O agente deve formular internamente o caso estrategico mais rico possivel, mas executar a verificacao por dados: filtros de `rank_pokemon`, checks focados de legalidade, movesets, itens e relacoes de tipo. Se uma informacao nao puder ser validada ou justificada, omitir essa regra e registrar a lacuna em `Pendencias`.
 
 ## Variacao Entre Times
 
@@ -107,20 +119,86 @@ Premissas
 
 Time 1
 Trio principal - estrategia=...
-1. pokemon - role=ace|...
+1. pokemon - source=user|ai - locked=true|false - role=ace|...
    Motivo: ...
-2. pokemon - role=...
+   Lacuna coberta: ... (apenas source=ai)
+   Golpes:
+   - golpe A: motivo
+   - golpe B: motivo
+   - golpe C: motivo
+   - golpe D: motivo
+   EVs: stat A XXX pts + stat B XXX pts + stat C XXX pts
+   Natureza: ...
+   Item: ...
+   Sugestao: ...
+   Notes: ...
+2. pokemon - source=user|ai - locked=true|false - role=...
    Motivo: ...
-3. pokemon - role=...
+   Lacuna coberta: ... (apenas source=ai)
+   Golpes:
+   - golpe A: motivo
+   - golpe B: motivo
+   - golpe C: motivo
+   - golpe D: motivo
+   EVs: stat A XXX pts + stat B XXX pts + stat C XXX pts
+   Natureza: ...
+   Item: ...
+   Sugestao: ...
+   Notes: ...
+3. pokemon - source=user|ai - locked=true|false - role=...
    Motivo: ...
+   Lacuna coberta: ... (apenas source=ai)
+   Golpes:
+   - golpe A: motivo
+   - golpe B: motivo
+   - golpe C: motivo
+   - golpe D: motivo
+   EVs: stat A XXX pts + stat B XXX pts + stat C XXX pts
+   Natureza: ...
+   Item: ...
+   Sugestao: ...
+   Notes: ...
 
 Trio complementar - estrategia=...
-4. pokemon - role=ace
+4. pokemon - source=user|ai - locked=true|false - role=ace
    Motivo: ...
-5. pokemon - role=...
+   Lacuna coberta: ... (apenas source=ai)
+   Golpes:
+   - golpe A: motivo
+   - golpe B: motivo
+   - golpe C: motivo
+   - golpe D: motivo
+   EVs: stat A XXX pts + stat B XXX pts + stat C XXX pts
+   Natureza: ...
+   Item: ...
+   Sugestao: ...
+   Notes: ...
+5. pokemon - source=user|ai - locked=true|false - role=...
    Motivo: ...
-6. pokemon - role=...
+   Lacuna coberta: ... (apenas source=ai)
+   Golpes:
+   - golpe A: motivo
+   - golpe B: motivo
+   - golpe C: motivo
+   - golpe D: motivo
+   EVs: stat A XXX pts + stat B XXX pts + stat C XXX pts
+   Natureza: ...
+   Item: ...
+   Sugestao: ...
+   Notes: ...
+6. pokemon - source=user|ai - locked=true|false - role=...
    Motivo: ...
+   Lacuna coberta: ... (apenas source=ai)
+   Golpes:
+   - golpe A: motivo
+   - golpe B: motivo
+   - golpe C: motivo
+   - golpe D: motivo
+   EVs: stat A XXX pts + stat B XXX pts + stat C XXX pts
+   Natureza: ...
+   Item: ...
+   Sugestao: ...
+   Notes: ...
 
 Analise do time
 - Plano principal: ...

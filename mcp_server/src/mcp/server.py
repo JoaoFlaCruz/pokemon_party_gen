@@ -7,10 +7,10 @@ import sys
 from typing import Any
 
 from mcp_server.src.mcp.tools.banned_pokemon_tool import BAN_POKEMON_TOOL, execute_ban_pokemon_tool
+from mcp_server.src.mcp.tools.champions_legality_tool import CHAMPIONS_LEGALITY_TOOL, execute_champions_legality_tool
 from mcp_server.src.mcp.tools.item_tool import ITEM_TOOL, execute_item_tool
 from mcp_server.src.mcp.tools.pokemon_moveset_tool import POKEMON_MOVESET_TOOL, execute_pokemon_moveset_tool
 from mcp_server.src.mcp.tools.pokemon_ranking_tool import POKEMON_RANKING_TOOL, execute_pokemon_ranking_tool
-from mcp_server.src.mcp.tools.team_builder_tool import TEAM_BUILDER_TOOL, execute_team_builder_tool
 from mcp_server.src.mcp.tools.type_relations_tool import TYPE_RELATIONS_TOOL, execute_type_relations_tool
 
 JSONRPC_VERSION = "2.0"
@@ -28,6 +28,10 @@ TOOLS = {
         ITEM_TOOL,
         execute_item_tool,
     ),
+    CHAMPIONS_LEGALITY_TOOL["function"]["name"]: (
+        CHAMPIONS_LEGALITY_TOOL,
+        execute_champions_legality_tool,
+    ),
     POKEMON_MOVESET_TOOL["function"]["name"]: (
         POKEMON_MOVESET_TOOL,
         execute_pokemon_moveset_tool,
@@ -35,10 +39,6 @@ TOOLS = {
     POKEMON_RANKING_TOOL["function"]["name"]: (
         POKEMON_RANKING_TOOL,
         execute_pokemon_ranking_tool,
-    ),
-    TEAM_BUILDER_TOOL["function"]["name"]: (
-        TEAM_BUILDER_TOOL,
-        execute_team_builder_tool,
     ),
     TYPE_RELATIONS_TOOL["function"]["name"]: (
         TYPE_RELATIONS_TOOL,
@@ -91,11 +91,15 @@ def dispatch(method: str | None, params: dict[str, Any]) -> dict[str, Any]:
                 "Use get_type_relations quando o usuario pedir relacoes, fraquezas, "
                 "imunidades ou efetividade entre tipos. Use list_items quando o usuario "
                 "pedir itens Pokemon, descricoes de itens ou validacao geral de itens. "
-                "Use rank_pokemon para rankings de Pokemon por stats e filtros de tipo. "
-                "Use build_pokemon_team quando o usuario pedir um time completo de 6 Pokemon, "
-                "dois trios, aces ou selecao de membros complementares. "
+                "Use rank_pokemon para rankings de Pokemon por stats e filtros de tipo; "
+                "esse ranking usa escopo Pokemon Champions por padrao e aceita champions_only=false "
+                "quando o pedido exigir ranking fora de Champions. "
                 "Use rank_pokemon_moveset quando o usuario pedir ranking, moveset, "
-                "melhores golpes ou analise ofensiva de um Pokemon por nome ou ID."
+                "melhores golpes ou analise ofensiva de um Pokemon por nome ou ID. "
+                "Use validate_champions_legality para validar Pokemon, golpes, habilidades "
+                "e itens no escopo Champions. A montagem de estrategia e selecao de papeis "
+                "permanece responsabilidade do fluxo agentico A-F, usando essas tools apenas "
+                "como fonte de fatos."
             ),
         }
 
@@ -121,7 +125,8 @@ def call_tool(params: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("arguments deve ser um objeto JSON.")
 
     _tool, executor = TOOLS[name]
-    result = executor(arguments)
+    result = dict(executor(arguments))
+    result.setdefault("diagnostics", [])
     return {
         "content": [
             {"type": "text", "text": result["presentation"]},

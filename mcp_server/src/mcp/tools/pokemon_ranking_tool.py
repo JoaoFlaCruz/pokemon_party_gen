@@ -18,6 +18,12 @@ from mcp_server.src.application.use_cases.rank_pokemon import (
     SPEED_MODE_CHOICES,
     rank_pokemon,
 )
+from mcp_server.src.shared.diagnostics import (
+    NO_ELIGIBLE_CANDIDATES,
+    SOURCE_UNAVAILABLE,
+    diagnostic,
+    result_envelope,
+)
 
 POKEMON_RANKING_TOOL = {
     "type": "function",
@@ -69,6 +75,13 @@ POKEMON_RANKING_TOOL = {
                     "minimum": 1,
                     "description": "Quantidade maxima de Pokemon retornados no ranking.",
                 },
+                "champions_only": {
+                    "type": "boolean",
+                    "description": (
+                        "Quando true, restringe candidatos ao escopo Pokemon Champions. "
+                        "Quando false, usa o universo geral disponivel na fonte PokeAPI."
+                    ),
+                },
             },
             "additionalProperties": False,
         },
@@ -76,7 +89,7 @@ POKEMON_RANKING_TOOL = {
 }
 
 RankPokemonCallable = Callable[
-    [list[str] | None, str, str | None, str, int],
+    [list[str] | None, str, str | None, str, int, bool],
     list[dict[str, Any]],
 ]
 
@@ -107,31 +120,72 @@ def execute_pokemon_ranking_tool(
     if speed_mode not in SPEED_MODE_CHOICES:
         raise ValueError("speed_mode deve ser ignore, high ou low.")
 
+    champions_only = arguments.get("champions_only", True)
+    if not isinstance(champions_only, bool):
+        raise ValueError("'champions_only' deve ser booleano.")
+
     head_size = arguments.get("head_size", 10)
     if not isinstance(head_size, int) or head_size < 1:
         raise ValueError("'head_size' deve ser um inteiro maior que zero.")
 
     selected_ranker = ranker or default_ranker
-    result = selected_ranker(types, offense_stat, priority_stat, speed_mode, head_size)
+    diagnostics = []
+    try:
+        result = selected_ranker(
+            types,
+            offense_stat,
+            priority_stat,
+            speed_mode,
+            head_size,
+            champions_only,
+        )
+    except RuntimeError as exc:
+        diagnostics.append(
+            diagnostic(
+                SOURCE_UNAVAILABLE,
+                str(exc),
+                blocking=True,
+                details={"types": types, "champions_only": champions_only},
+            )
+        )
+        result = []
     result = filter_banned_pokemon(result, banned_db_path)
-    return {
-        "tool_name": POKEMON_RANKING_TOOL["function"]["name"],
-        "input": {
+    input_data = {
             "types": types,
             "offense_stat": offense_stat,
             "priority_stat": priority_stat,
             "speed_mode": speed_mode,
             "head_size": head_size,
-        },
-        "data": result,
-        "presentation": format_pokemon_ranking_presentation(
+            "champions_only": champions_only,
+        }
+    if not result and not diagnostics:
+        diagnostics.append(
+            diagnostic(
+                NO_ELIGIBLE_CANDIDATES,
+                "Nenhum Pokemon elegivel encontrado para os filtros informados.",
+                blocking=False,
+                details={
+                    "types": types,
+                    "champions_only": champions_only,
+                    "result_count": 0,
+                },
+            )
+        )
+    return result_envelope(
+        tool_name=POKEMON_RANKING_TOOL["function"]["name"],
+        input_data=input_data,
+        data=result,
+        presentation=format_pokemon_ranking_presentation(
             result,
             types=types,
             offense_stat=offense_stat,
             priority_stat=priority_stat,
             speed_mode=speed_mode,
+            champions_only=champions_only,
+            diagnostics=diagnostics,
         ),
-    }
+        diagnostics=diagnostics,
+    )
 
 
 def load_banned_pokemon(db_path: str | Path | None) -> tuple[set[int], set[str]]:
@@ -144,11 +198,8 @@ def load_banned_pokemon(db_path: str | Path | None) -> tuple[set[int], set[str]]
         return set(), set()
 
     try:
-        connection = sqlite3.connect(path)
-        try:
+        with sqlite3.connect(path) as connection:
             rows = connection.execute("SELECT id, name FROM banned_pokemon").fetchall()
-        finally:
-            connection.close()
     except sqlite3.Error as exc:
         raise RuntimeError(
             "Nao foi possivel ler a tabela banned_pokemon do banco de Pokemon proibidos."
@@ -205,6 +256,7 @@ def default_ranker(
     priority_stat: str | None,
     speed_mode: str,
     head_size: int,
+    champions_only: bool,
 ) -> list[dict[str, Any]]:
     fetcher = PokemonFetcher()
     return rank_pokemon(
@@ -214,6 +266,7 @@ def default_ranker(
         priority_stat=priority_stat,
         speed_mode=speed_mode,
         head_size=head_size,
+        champions_only=champions_only,
     )
 
 
@@ -223,6 +276,8 @@ def format_pokemon_ranking_presentation(
     offense_stat: str,
     priority_stat: str | None,
     speed_mode: str,
+    champions_only: bool,
+    diagnostics: list[dict[str, Any]] | None = None,
 ) -> str:
     """Build a concise text response suitable for an AI assistant."""
     filters = ", ".join(types) if types else "todos"
@@ -231,6 +286,7 @@ def format_pokemon_ranking_presentation(
         f"Atributo ofensivo solicitado: {offense_stat}",
         f"Atributo priorizado: {priority_stat or 'nenhum'}",
         f"Modo de velocidade: {speed_mode}",
+        f"Escopo Champions: {'ativado' if champions_only else 'desativado'}",
         "Melhores Pokemon:",
     ]
 
@@ -257,6 +313,10 @@ def format_pokemon_ranking_presentation(
 
     if not result:
         lines.append("- Nenhum Pokemon encontrado para os filtros informados.")
+    for item in diagnostics or []:
+        lines.append(
+            f"Diagnostico: {item.get('code')} - {item.get('message')}"
+        )
 
     return "\n".join(lines)
 
@@ -278,6 +338,7 @@ def main() -> None:
         priority_stat: str | None,
         speed_mode: str,
         head_size: int,
+        champions_only: bool,
     ) -> list[dict[str, Any]]:
         fetcher = PokemonFetcher()
         return rank_pokemon(
@@ -287,6 +348,7 @@ def main() -> None:
             priority_stat=priority_stat,
             speed_mode=speed_mode,
             head_size=head_size,
+            champions_only=champions_only,
             max_workers=args.max_workers,
         )
 

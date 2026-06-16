@@ -17,6 +17,14 @@ STAT_HP = "hp"
 STAT_DEFENSE = "defense"
 STAT_SPECIAL_DEFENSE = "special-defense"
 STAT_SPEED = "speed"
+REQUIRED_STATS = (
+    STAT_HP,
+    OFFENSE_ATTACK,
+    STAT_DEFENSE,
+    OFFENSE_SPECIAL_ATTACK,
+    STAT_SPECIAL_DEFENSE,
+    STAT_SPEED,
+)
 PRIORITY_STAT_CHOICES = (
     STAT_HP,
     OFFENSE_ATTACK,
@@ -39,6 +47,8 @@ class FetchesPokemon(Protocol):
         types: list[str] | tuple[str, ...] | None = None,
         ability: str | None = None,
         move: str | None = None,
+        champions_only: bool = False,
+        allowed_species: set[str] | None = None,
         max_workers: int = POKEAPI_MAX_WORKERS,
     ) -> list[dict[str, Any]]:
         ...
@@ -62,6 +72,12 @@ def normalize_types(types: list[str] | tuple[str, ...] | None) -> list[str] | No
 
 def stat_value(stats: dict[str, int | None], stat_name: str) -> int:
     return stats.get(stat_name) or 0
+
+
+def has_required_stats(pokemon: dict[str, Any]) -> bool:
+    """Return whether a Pokemon has the complete base stat set required for ranking."""
+    stats = pokemon.get("stats") or {}
+    return all(isinstance(stats.get(stat_name), int) for stat_name in REQUIRED_STATS)
 
 
 def validate_priority_stat(priority_stat: str | None) -> str | None:
@@ -157,6 +173,8 @@ def score_pokemon(
         "is_battle_only",
         "base_pokemon",
         "required_item",
+        "champions_dex",
+        "id",
     ):
         if field in pokemon:
             result[field] = pokemon[field]
@@ -171,6 +189,8 @@ def rank_pokemon(
     priority_stat: str | None = None,
     speed_mode: str = SPEED_IGNORE,
     head_size: int = 10,
+    champions_only: bool = False,
+    allowed_species: set[str] | None = None,
     max_workers: int = POKEAPI_MAX_WORKERS,
 ) -> list[dict[str, Any]]:
     """Fetch Pokemon, score them, and return the best entries first."""
@@ -180,6 +200,8 @@ def rank_pokemon(
     normalized_types = normalize_types(types)
     pokemon_list = fetcher.fetch_pokemon(
         types=normalized_types,
+        champions_only=champions_only,
+        allowed_species=allowed_species,
         max_workers=max_workers,
     )
     ranked = [
@@ -190,6 +212,7 @@ def rank_pokemon(
             speed_mode=speed_mode,
         )
         for pokemon in pokemon_list
+        if has_required_stats(pokemon)
     ]
     ranked.sort(key=lambda item: (-item["score"], item["name"]))
     return ranked[:head_size]
@@ -235,6 +258,7 @@ def main() -> None:
     )
     parser.add_argument("--base-url", default=POKEAPI_BASE_URL)
     parser.add_argument("--timeout", type=float, default=POKEAPI_TIMEOUT)
+    parser.add_argument("--champions-only", action="store_true")
     parser.add_argument("--max-workers", type=int, default=POKEAPI_MAX_WORKERS)
     args = parser.parse_args()
 
@@ -246,6 +270,7 @@ def main() -> None:
         priority_stat=args.priority_stat,
         speed_mode=args.speed_mode,
         head_size=args.head_size,
+        champions_only=args.champions_only,
         max_workers=args.max_workers,
     )
     print(json.dumps(result, indent=2, ensure_ascii=False))
