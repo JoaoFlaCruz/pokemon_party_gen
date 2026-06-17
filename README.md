@@ -1,6 +1,9 @@
 # Pokemon Party Gen
 
-Python utilities for querying a local PokeAPI-compatible API, ranking Pokemon and moves, building teams, and exposing those functions as MCP tools for Codex.
+Pokemon Party Gen is a layered desktop product for querying a local
+PokeAPI-compatible API, ranking Pokemon and moves, building teams, and exposing
+those functions through an Electron desktop app, a Python BFF/API surface, and
+MCP tools for Codex.
 
 The root Docker environment starts:
 
@@ -12,6 +15,9 @@ The root Docker environment starts:
 
 ## Basic Structure
 
+- `.specify/memory/constitution.md`: project governance for layered architecture,
+  contract-first API boundaries, TDD, documentation, and Pokemon data fidelity.
+- `desktop_app/`: Electron desktop interface.
 - `mcp_server/src/`: Python code for MCP, fetchers, ranking rules, and team-building rules.
 - `mcp_server/tests/`: unit tests for MCP tools and rules.
 - `docs/`: architecture and team-building documentation.
@@ -175,6 +181,10 @@ Exposed tools include:
 - `ban_pokemon`
 
 ## Tests
+
+Behavior changes follow TDD: write or update the failing automated test first,
+implement the smallest passing change, then refactor. Manual checks against a
+running PokeAPI supplement automated tests but do not replace them.
 
 To run MCP unit tests:
 

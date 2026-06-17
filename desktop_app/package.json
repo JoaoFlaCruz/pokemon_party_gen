@@ -2,11 +2,32 @@
   "name": "pokemon-party-gen-desktop",
   "version": "1.0.0",
   "description": "Desktop UI for Pokemon Party Generator",
-  "main": "main.js",
+  "main": "dist/main/main.js",
+  "type": "commonjs",
   "scripts": {
-    "start": "electron . --no-sandbox --disable-gpu"
+    "build": "npm run build:main && npm run build:renderer",
+    "build:main": "tsc -p tsconfig.main.json",
+    "build:renderer": "vite build",
+    "start": "npm run build && electron . --no-sandbox --disable-gpu",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.main.json --noEmit"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^5.1.1",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "vite": "^7.2.7"
   },
   "devDependencies": {
-    "electron": "^42.4.0"
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.1",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^24.10.2",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "electron": "^42.4.0",
+    "jsdom": "^27.3.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.15"
   }
 }

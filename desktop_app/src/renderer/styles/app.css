@@ -1,0 +1,284 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #30343b;
+  color: #17202a;
+  font-family: Inter, Arial, sans-serif;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  border: 1px solid #34495e;
+  background: #f6f8fa;
+  color: #17202a;
+  border-radius: 6px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.app-shell {
+  min-height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 14px 20px;
+  background: #eef2f6;
+  border-bottom: 3px solid #17202a;
+}
+
+.topbar h1 {
+  font-size: 20px;
+  margin: 0;
+}
+
+.topbar nav {
+  display: flex;
+  gap: 8px;
+}
+
+.topbar .active,
+.primary {
+  background: #2f855a;
+  color: #fff;
+}
+
+.diagnostics {
+  display: grid;
+  gap: 6px;
+  padding: 10px 20px;
+  background: #fff5db;
+}
+
+.diagnostic {
+  margin: 0;
+}
+
+.diagnostic.error {
+  color: #9b1c1c;
+}
+
+.diagnostic.warning {
+  color: #8a5b00;
+}
+
+.team-builder {
+  display: grid;
+  grid-template-columns: 300px minmax(460px, 1fr) 320px;
+  gap: 14px;
+  padding: 14px;
+}
+
+.panel,
+.saved-team-card,
+.empty-state {
+  background: #f8fafc;
+  border: 2px solid #243447;
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.detail-panel {
+  min-height: 680px;
+}
+
+.portrait {
+  width: 180px;
+  height: 180px;
+  object-fit: contain;
+  display: grid;
+  place-items: center;
+  background: #e5e7eb;
+  border-radius: 8px;
+  margin: 8px auto;
+}
+
+.source-note {
+  color: #576574;
+  font-size: 12px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.stats div,
+.iv-grid label {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.builder-center {
+  display: grid;
+  gap: 14px;
+}
+
+.team-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 12px;
+  background: #dbeafe;
+  border: 2px solid #243447;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.team-header label,
+.field,
+.compact label {
+  display: grid;
+  gap: 4px;
+}
+
+.team-header input,
+.filters input,
+.filters select,
+.field select,
+.compact select,
+.iv-grid input {
+  min-height: 36px;
+  border: 1px solid #94a3b8;
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+.party-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.party-slot {
+  min-height: 150px;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 4px;
+  background: #d8f3dc;
+}
+
+.party-slot.selected {
+  outline: 4px solid #f59e0b;
+}
+
+.party-slot img,
+.pokemon-results img,
+.saved-slot img,
+.item-preview img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+}
+
+.empty-sprite {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  background: #e5e7eb;
+  border-radius: 6px;
+}
+
+.customization {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.compact {
+  display: grid;
+  gap: 8px;
+}
+
+.iv-grid {
+  display: grid;
+  gap: 6px;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.pokemon-results {
+  display: grid;
+  gap: 8px;
+  max-height: 620px;
+  overflow: auto;
+  margin-top: 12px;
+}
+
+.pokemon-results button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+}
+
+.item-preview {
+  min-height: 32px;
+}
+
+.saved-teams {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+}
+
+.page-header,
+.pagination,
+.saved-team-card header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.saved-team-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.saved-slots {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.saved-slot {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  min-height: 110px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 6px;
+}
+
+.warning {
+  color: #9b1c1c;
+  font-size: 12px;
+}

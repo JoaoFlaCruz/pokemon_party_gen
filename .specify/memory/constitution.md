@@ -1,50 +1,142 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report
+Version change: template -> 1.0.0
+Modified principles:
+- Template principle 1 -> I. Layered Product Architecture
+- Template principle 2 -> II. Contract-First API Boundaries
+- Template principle 3 -> III. Test-Driven Delivery
+- Template principle 4 -> IV. Documentation Is a Deliverable
+- Template principle 5 -> V. Data Fidelity and Traceability
+Added sections:
+- Product Architecture Constraints
+- Development Workflow and Quality Gates
+Removed sections:
+- None
+Templates requiring updates:
+- Updated: .specify/templates/plan-template.md
+- Updated: .specify/templates/spec-template.md
+- Updated: .specify/templates/tasks-template.md
+- Reviewed: .specify/templates/commands/*.md (no command templates present)
+Runtime guidance requiring updates:
+- Updated: README.md
+- Updated: docs/architecture.md
+- Reviewed: AGENTS.md (no change required)
+Follow-up TODOs:
+- None
+-->
+# Pokemon Party Gen Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Layered Product Architecture
+Pokemon Party Gen MUST preserve a layered architecture with explicit ownership
+boundaries: Electron owns the desktop user interface, the Python BFF/API layer
+owns application orchestration and HTTP contracts, domain and use-case modules own
+business rules, infrastructure modules own external API and persistence access,
+and PokeAPI-compatible services own Pokemon source data. Code MUST NOT bypass
+these boundaries; cross-layer calls require a documented contract and tests.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+Rationale: the project combines desktop UX, Python services, MCP tools, and
+Pokemon data sources. Clear boundaries keep feature work testable and prevent UI,
+API, and data-access behavior from becoming coupled.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### II. Contract-First API Boundaries
+Every public boundary MUST define stable, JSON-serializable contracts before
+implementation. This includes Electron-to-BFF routes, BFF or FastAPI-compatible
+HTTP endpoints, MCP tools, CLI entry points, and PokeAPI adapters. Input
+validation, error shapes, diagnostics, and response fields MUST be specified and
+covered by contract or wrapper tests when changed.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+Rationale: multiple clients and agents consume the same behavior. Contract-first
+changes reduce regressions and make API compatibility observable in tests.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### III. Test-Driven Delivery
+All behavior changes MUST follow TDD: write or update failing tests first, confirm
+the failure is meaningful, implement the smallest change that passes, then
+refactor while preserving passing tests. Unit tests MUST cover pure business
+rules and adapters with fakes; contract or integration tests MUST cover changed
+public boundaries. Manual PokeAPI checks MAY supplement but MUST NOT replace
+automated tests.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+Rationale: ranking, team-building, and data adaptation are rule-heavy. Tests are
+the executable proof that behavior is intentional and repeatable.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### IV. Documentation Is a Deliverable
+Every implementation or behavior change MUST update the documentation that a
+future maintainer or agent needs to understand it. Architecture, contracts,
+environment variables, run commands, test commands, team-building rules, and data
+flow changes MUST be documented in the relevant README, docs, or Spec Kit
+artifact before the change is complete.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+Rationale: this project is used by humans and coding agents. Documentation is
+part of the operating surface, not a postscript.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### V. Data Fidelity and Traceability
+Pokemon facts MUST come from project tools, injected test fakes, or a configured
+PokeAPI-compatible source. The project MUST NOT fabricate Pokemon identity,
+stats, moves, abilities, items, legality, or membership data. When data is
+missing, incomplete, or unavailable, features MUST return explicit diagnostics or
+pending states instead of invented results.
+
+Rationale: reliable team generation depends on traceable source data. Fabricated
+facts produce teams that cannot be validated.
+
+## Product Architecture Constraints
+
+Pokemon Party Gen is a desktop product with a multi-layer backend surface:
+
+- Electron desktop code lives under `desktop_app/` and consumes documented local
+  HTTP contracts.
+- Python BFF/API code lives under `mcp_server/src/application/` or a documented
+  API package and exposes FastAPI-compatible JSON behavior where an HTTP API is
+  required. Transitional non-FastAPI servers MUST be documented with their route
+  contracts and migration constraints.
+- Business rules live under `mcp_server/src/application/use_cases/` and remain
+  independently testable without real HTTP.
+- External Pokemon API access and response adaptation live under
+  `mcp_server/src/infrastructure/pokeapi/`.
+- MCP tool schemas, validation, presentation, dispatch, and tests live under
+  `mcp_server/src/mcp/tools/` and `mcp_server/src/mcp/server.py`.
+- PokeAPI source/runtime code remains isolated under `pokeapi/`; project code
+  consumes it through configured API contracts rather than internal imports.
+
+New dependencies, new layers, or boundary changes require an updated architecture
+document and a constitution check in the implementation plan.
+
+## Development Workflow and Quality Gates
+
+Feature work MUST proceed through specification, plan, tests, implementation,
+documentation, and verification. A plan MUST identify affected layers, changed
+contracts, data sources, and test strategy before implementation starts.
+
+Before a change is complete:
+
+- Automated tests covering the changed behavior MUST pass.
+- New public routes, tools, or adapters MUST include contract or wrapper tests.
+- Fetcher and PokeAPI adapter changes MUST use fakes or injected fetchers for
+  automated coverage; real PokeAPI checks remain manual.
+- Documentation changes MUST be included or explicitly justified as unnecessary.
+- Any inability to validate local PokeAPI data MUST be reported as a residual
+  risk rather than hidden.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes conflicting local practices and templates. Pull
+requests, plans, and task lists MUST include a constitution check covering the
+five core principles and the architecture constraints above. Exceptions require a
+documented violation entry with reason, simpler alternative rejected, and follow-up
+mitigation.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+Amendments require updating this file, adding a Sync Impact Report, propagating
+changes to affected Spec Kit templates and runtime guidance, and recording the
+semantic version impact:
+
+- MAJOR for removing or redefining a principle in a backward-incompatible way.
+- MINOR for adding a principle, section, or materially expanded governance.
+- PATCH for clarifications that do not change required behavior.
+
+Compliance review is mandatory before merging implementation work. Reviewers and
+agents MUST verify tests, documentation, contracts, and data-source traceability
+against this constitution.
+
+**Version**: 1.0.0 | **Ratified**: 2026-06-17 | **Last Amended**: 2026-06-17

@@ -1,10 +1,40 @@
 # Project Architecture
 
-This project provides Python utilities for querying a PokeAPI-compatible API, ranking Pokemon and moves, and exposing that functionality through MCP tools for agents.
+Pokemon Party Gen is a layered desktop product for querying a
+PokeAPI-compatible API, ranking Pokemon and moves, building teams, and exposing
+that functionality through Electron, a Python BFF/API surface, and MCP tools for
+agents.
+
+Project governance lives in `.specify/memory/constitution.md`. Architecture
+changes must satisfy its layered architecture, contract-first boundary, TDD,
+documentation, and data-fidelity requirements.
 
 ## Structure
 
 ```text
+desktop_app/
+    index.html
+    package.json
+    tsconfig.json
+    tsconfig.main.json
+    vite.config.ts
+    vitest.config.ts
+    src/
+        main/
+            main.ts
+            preload.ts
+        renderer/
+            app.tsx
+            main.tsx
+            components/
+            data/
+            pages/
+            services/
+            state/
+            styles/
+            types/
+    tests/
+        renderer/
 mcp_server/
     src/
         main.py
@@ -59,7 +89,51 @@ mcp_server/
             test_fetch_calls.py
 ```
 
+## Layer Ownership
+
+- `desktop_app/` owns the Electron desktop UI. The current frontend refactor uses
+  TypeScript application source, a React/TSX renderer, Vite build tooling,
+  Vitest/Testing Library tests, source-noted demo fixtures, and frontend service
+  contracts while backend API integration is deferred. It must not import Python
+  internals, PokeAPI internals, or call public PokeAPI URLs directly from the UI.
+- `mcp_server/src/application/api_server.py` is the current Python BFF/API bridge
+  for the desktop UI. New HTTP API work must keep JSON contracts documented and
+  tested; migration to FastAPI-compatible routing must preserve these contracts.
+- `mcp_server/src/application/use_cases/` owns business rules and remains
+  testable with fakes or injected fetchers.
+- `mcp_server/src/infrastructure/pokeapi/` owns PokeAPI-compatible HTTP access and
+  response adaptation.
+- `mcp_server/src/mcp/tools/` and `mcp_server/src/mcp/server.py` own MCP schemas,
+  validation, presentation text, and dispatch.
+- `pokeapi/` is the local PokeAPI source/runtime and is consumed through HTTP
+  contracts, not internal imports.
+
 ## Configuration
+
+## Desktop Frontend Commands
+
+The desktop frontend is validated independently from the Python backend for the
+fixture-only refactor phase:
+
+```bash
+cd desktop_app
+npm install
+npm run typecheck
+npm test
+npm run build
+npm start
+```
+
+`npm start` builds the Electron main process and renderer before launching the
+desktop app. The current frontend phase uses local source-noted fixtures and does
+not require a running Python API or local PokeAPI server. Future API work must
+replace fixture-backed frontend service implementations through documented
+contracts rather than direct renderer calls to external Pokemon APIs.
+
+The renderer build must remain loadable from Electron's local file execution
+path without a development server. Vite asset URLs are configured as relative
+paths so the built HTML can load its JavaScript and CSS from `dist/renderer/`
+when opened by the Electron main process.
 
 `mcp_server/src/config/env.py` loads environment variables from a root `.env` file without overriding values that are already defined in the environment.
 
