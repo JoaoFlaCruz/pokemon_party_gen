@@ -1,137 +1,296 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pokemon Party Generator</title>
   <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
-  <div class="app-container">
-    <!-- Sidebar / Left Panel -->
-    <aside class="sidebar">
-      <div class="logo-section">
-        <h1>Pokemon Party</h1>
-        <p>Advanced Team Builder & Ranker</p>
+  <div class="retro-container">
+
+    <!-- Barra de Título (Painel Superior) -->
+    <header class="title-bar">
+      <div class="title-left">
+        <button id="btn-dados" class="retro-btn btn-dados">DADOS</button>
       </div>
-
-      <!-- Strategy Inputs -->
-      <div class="form-group">
-        <label for="primary-strategy">Primary Strategy</label>
-        <input type="text" id="primary-strategy" value="balanced pressure" placeholder="e.g. offensive pressure">
+      <div class="title-center">
+        <button id="btn-equipe" class="retro-btn btn-equipe active">EQUIPE POKEMON</button>
+        <button id="btn-fechar" class="retro-btn btn-fechar">FECHAR CAIXA</button>
       </div>
-
-      <div class="form-group">
-        <label for="complementary-strategy">Complementary Strategy</label>
-        <input type="text" id="complementary-strategy" value="complementary coverage" placeholder="e.g. stall/defense">
+      <div class="title-right">
+        <button id="btn-gerenciador-toggle" class="retro-btn btn-gerenciador">GERENCIADOR</button>
       </div>
+    </header>
 
-      <!-- Aces -->
-      <div class="form-group">
-        <label for="ace-inputs">Aces (Max 2, optional)</label>
-        <input type="text" id="ace-inputs" placeholder="bulbasaur, charmander" title="Separados por vírgula">
-      </div>
+    <div class="main-layout">
 
-      <!-- Autocomplete Search -->
-      <div class="form-group">
-        <label for="pokemon-search">Add User Pokemon (Locked)</label>
-        <div class="search-wrapper">
-          <input type="text" id="pokemon-search" placeholder="Type Pokemon name..." autocomplete="off">
-          <div id="suggestions" class="suggestions-list" style="display: none;"></div>
-        </div>
-      </div>
-
-      <!-- Selected Pokemon List -->
-      <div class="form-group">
-        <label>Selected Pokemon (<span id="selected-count">0</span>/6)</label>
-        <div id="selected-list" class="selected-pokemon-list">
-          <!-- Dynamically populated -->
-        </div>
-      </div>
-
-      <!-- Generate Button -->
-      <button id="btn-generate" class="btn-primary">Generate Team</button>
-    </aside>
-
-    <!-- Main Panel -->
-    <main class="main-dashboard">
-      <!-- Alerts & Pending Issues -->
-      <div id="alert-container" style="display: none;"></div>
-
-      <!-- Trios Grid -->
-      <div class="trios-grid">
-        <!-- Primary Trio -->
-        <div class="trio-container primary-trio">
-          <div class="trio-header">
-            <h2>Primary Trio</h2>
-            <span id="primary-strategy-badge" class="trio-strategy">Balanced Pressure</span>
-          </div>
-          <div id="primary-cards" class="trio-cards">
-            <!-- 3 Pokemon slots -->
-            <div class="pokemon-card empty-card"><p style="color: var(--text-muted);">Awaiting team generation...</p></div>
-          </div>
-        </div>
-
-        <!-- Complementary Trio -->
-        <div class="trio-container complementary-trio">
-          <div class="trio-header">
-            <h2>Complementary Trio</h2>
-            <span id="complementary-strategy-badge" class="trio-strategy">Complementary Coverage</span>
-          </div>
-          <div id="complementary-cards" class="trio-cards">
-            <!-- 3 Pokemon slots -->
-            <div class="pokemon-card empty-card"><p style="color: var(--text-muted);">Awaiting team generation...</p></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Team Analysis Dashboard -->
-      <div class="analysis-section">
-        <h2>Team Analysis</h2>
-        <div class="analysis-grid">
-          <!-- Strengths and Risks -->
-          <div class="bullets-col">
-            <div class="bullet-group strengths">
-              <h3>Strengths</h3>
-              <ul id="strengths-list" class="bullet-list">
-                <li>Generate a team to view strengths.</li>
-              </ul>
-            </div>
-            <div class="bullet-group risks">
-              <h3>Risks & Vulnerabilities</h3>
-              <ul id="risks-list" class="bullet-list">
-                <li>Generate a team to view potential risks.</li>
-              </ul>
-            </div>
-          </div>
-
-          <!-- Type Relations Grid -->
-          <div class="type-matrix-card">
-            <h3>Type Resistances</h3>
-            <div id="type-grid" class="type-grid">
-              <!-- Dynamically populated -->
+      <!-- Painel da Esquerda (Perfil do Pokémon) -->
+      <aside class="left-panel">
+        <div class="panel-header">
+          <!-- Level and Gender at top left -->
+          <div class="pkmn-meta-top">
+            <span class="lbl-lv">Lv.<input type="number" id="pkmn-level" min="1" max="100" value="100"></span>
+            <div class="gender-selector">
+              <button id="btn-gender-m" class="gender-btn active" title="Masculino">♂</button>
+              <button id="btn-gender-f" class="gender-btn" title="Feminino">♀</button>
             </div>
           </div>
         </div>
-      </div>
-    </main>
-  </div>
 
-  <!-- Detail Modal -->
-  <div id="detail-modal" class="modal-overlay">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2 id="modal-pokemon-name">Pokemon Moveset</h2>
-        <button id="modal-close" class="btn-close">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div id="modal-stats" style="margin-bottom: 15px;"></div>
-        <h3>Suggested Movesets</h3>
-        <div id="modal-moves" class="moves-list">
-          <!-- List of moves -->
+        <!-- Checkered Picture Box -->
+        <div class="portrait-box-wrapper">
+          <div class="portrait-box">
+            <img id="active-pkmn-img"
+              src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/0.png"
+              alt="Pokemon"
+              onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png'">
+          </div>
+        </div>
+
+        <!-- Info Area -->
+        <div class="pkmn-profile-info">
+          <div class="info-row">
+            <span class="info-lbl">Nome:</span>
+            <span id="active-pkmn-name" class="info-val">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-lbl">Tipo:</span>
+            <span id="active-pkmn-type" class="info-val">-</span>
+          </div>
+          <div class="info-row">
+            <span class="info-lbl">Item:</span>
+            <input type="text" id="active-pkmn-item" class="retro-input" value="Nenhum" placeholder="Digite um item...">
+          </div>
+        </div>
+
+        <!-- Move Buttons -->
+        <div class="moves-container">
+          <button id="btn-move-1" class="move-btn type-normal">---</button>
+          <button id="btn-move-2" class="move-btn type-normal">---</button>
+          <button id="btn-move-3" class="move-btn type-normal">---</button>
+          <button id="btn-move-4" class="move-btn type-normal">---</button>
+        </div>
+
+        <!-- Stats Bar Chart -->
+        <div class="stats-container">
+          <div class="stat-bar-row">
+            <span class="stat-name">HP</span>
+            <div class="bar-wrapper">
+              <div id="bar-hp" class="bar-fill hp" style="width: 0%"></div>
+            </div>
+            <span id="val-hp" class="stat-number">0</span>
+          </div>
+          <div class="stat-bar-row">
+            <span class="stat-name">ATK</span>
+            <div class="bar-wrapper">
+              <div id="bar-atk" class="bar-fill atk" style="width: 0%"></div>
+            </div>
+            <span id="val-atk" class="stat-number">0</span>
+          </div>
+          <div class="stat-bar-row">
+            <span class="stat-name">DEF</span>
+            <div class="bar-wrapper">
+              <div id="bar-def" class="bar-fill def" style="width: 0%"></div>
+            </div>
+            <span id="val-def" class="stat-number">0</span>
+          </div>
+          <div class="stat-bar-row">
+            <span class="stat-name">SPA</span>
+            <div class="bar-wrapper">
+              <div id="bar-spa" class="bar-fill spa" style="width: 0%"></div>
+            </div>
+            <span id="val-spa" class="stat-number">0</span>
+          </div>
+          <div class="stat-bar-row">
+            <span class="stat-name">SPD</span>
+            <div class="bar-wrapper">
+              <div id="bar-spd" class="bar-fill spd" style="width: 0%"></div>
+            </div>
+            <span id="val-spd" class="stat-number">0</span>
+          </div>
+          <div class="stat-bar-row">
+            <span class="stat-name">SPE</span>
+            <div class="bar-wrapper">
+              <div id="bar-spe" class="bar-fill spe" style="width: 0%"></div>
+            </div>
+            <span id="val-spe" class="stat-number">0</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Painel Central (Caixa de Pokémon) -->
+      <main class="center-panel">
+
+        <!-- Faixa de Título do Time -->
+        <div class="team-title-stripe">
+          <button id="btn-team-prev" class="stripe-arrow">&lt;</button>
+          <div class="team-name-wrapper">
+            <input type="text" id="team-name-input" value="Time 1 (6 PkmN)" class="team-name-input">
+          </div>
+          <button id="btn-team-next" class="stripe-arrow">&gt;</button>
+        </div>
+
+        <!-- Pokemon na Caixa (Gramado) -->
+        <div class="box-grass-container">
+          <div class="pkmn-box-grid">
+            <!-- 6 slots filled dynamically -->
+            <div class="box-slot empty" data-index="0">
+              <span class="slot-number">#1</span>
+              <div class="sprite-holder"></div>
+              <span class="slot-name">Vazio</span>
+            </div>
+            <div class="box-slot empty" data-index="1">
+              <span class="slot-number">#2</span>
+              <div class="sprite-holder"></div>
+              <span class="slot-name">Vazio</span>
+            </div>
+            <div class="box-slot empty" data-index="2">
+              <span class="slot-number">#3</span>
+              <div class="sprite-holder"></div>
+              <span class="slot-name">Vazio</span>
+            </div>
+            <div class="box-slot empty" data-index="3">
+              <span class="slot-number">#4</span>
+              <div class="sprite-holder"></div>
+              <span class="slot-name">Vazio</span>
+            </div>
+            <div class="box-slot empty" data-index="4">
+              <span class="slot-number">#5</span>
+              <div class="sprite-holder"></div>
+              <span class="slot-name">Vazio</span>
+            </div>
+            <div class="box-slot empty" data-index="5">
+              <span class="slot-number">#6</span>
+              <div class="sprite-holder"></div>
+              <span class="slot-name">Vazio</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Área de Detalhes (POKEDEX) -->
+        <div class="pokedex-details">
+          <div class="pokedex-header">POKEDEX</div>
+          <div class="pokedex-content">
+            <p id="pokedex-desc">Carregando dados da Pokédex...</p>
+          </div>
+        </div>
+      </main>
+
+      <!-- Painel da Direita (Painel de Gerenciamento) -->
+      <aside class="right-panel" id="right-panel">
+        <div class="manager-header">GERENCIADOR</div>
+
+        <!-- Primeira Linha: Botão Pokemons -->
+        <div class="manager-action-row">
+          <button id="btn-pokemons-list" class="retro-btn btn-pokemons-list-toggle">Pokemons</button>
+
+          <!-- Dropdown/Overlay para lista de 1 a 1200 -->
+          <div class="pokemons-dropdown-box" id="pokemons-dropdown-box" style="display: none;">
+            <input type="text" id="pokemon-search-input" placeholder="Pesquisar..." class="retro-input-search">
+            <div class="pokemons-scroll-grid" id="pokemons-scroll-grid">
+              <!-- Dynamically filled with 1200 Pokemon sprites and names -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Segunda Linha: Barra cinza Sugestões -->
+        <div class="suggestions-bar">Sugestões</div>
+
+        <!-- Linhas Seguintes: 3 slots de sugestões -->
+        <div class="suggestions-list-vertical" id="suggestions-list-vertical">
+          <div class="suggestion-row-retro empty">
+            <div class="sugg-sprite"></div>
+            <div class="sugg-info">
+              <div class="sugg-name">-</div>
+              <div class="sugg-reason">Nenhum Pokémon ativo selecionado</div>
+            </div>
+          </div>
+          <div class="suggestion-row-retro empty">
+            <div class="sugg-sprite"></div>
+            <div class="sugg-info">
+              <div class="sugg-name">-</div>
+              <div class="sugg-reason">Nenhum Pokémon ativo selecionado</div>
+            </div>
+          </div>
+          <div class="suggestion-row-retro empty">
+            <div class="sugg-sprite"></div>
+            <div class="sugg-info">
+              <div class="sugg-name">-</div>
+              <div class="sugg-reason">Nenhum Pokémon ativo selecionado</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Team Generator Config Panel (Toggle via DADOS) -->
+        <div class="generator-config-box" id="generator-config-box" style="display: none;">
+          <div class="config-header">CONFIGURAÇÕES DO TIME</div>
+          <div class="config-body">
+            <div class="config-field">
+              <label>Estratégia Primária:</label>
+              <input type="text" id="primary-strategy" class="retro-input" value="balanced pressure">
+            </div>
+            <div class="config-field">
+              <label>Estratégia Complementar:</label>
+              <input type="text" id="secondary-strategy" class="retro-input" value="complementary coverage">
+            </div>
+            <div class="config-field">
+              <label>Aces (charmander, bulbasaur):</label>
+              <input type="text" id="ace-inputs" class="retro-input" value="" placeholder="Opcional">
+            </div>
+            <button id="btn-generate-team" class="retro-btn btn-generate-big">GERAR TIME COMPLETAR</button>
+            <button id="btn-ban-pkmn" class="retro-btn btn-ban-retro">BANIR DO TIME</button>
+          </div>
+        </div>
+      </aside>
+
+    </div>
+
+    <!-- Retro Global Alert Modal -->
+    <div id="retro-alert" class="retro-modal" style="display: none;">
+      <div class="retro-modal-content">
+        <div class="retro-modal-header" id="retro-alert-title">ATENÇÃO</div>
+        <div class="retro-modal-body" id="retro-alert-msg">Mensagem de alerta retro.</div>
+        <div class="retro-modal-footer">
+          <button id="btn-retro-alert-ok" class="retro-btn">OK</button>
         </div>
       </div>
     </div>
+
+    <!-- Retro Move Details Modal -->
+    <div id="move-details-modal" class="retro-modal" style="display: none;">
+      <div class="retro-modal-content move-detail-modal-content">
+        <div class="retro-modal-header" id="move-modal-title">DETALHES DO MOVIMENTO</div>
+        <div class="retro-modal-body">
+          <div class="move-details-grid">
+            <div class="move-detail-row"><span class="move-detail-lbl">Nome:</span> <span id="move-detail-name">-</span>
+            </div>
+            <div class="move-detail-row"><span class="move-detail-lbl">Categoria:</span> <span id="move-detail-category"
+                class="move-badge-class">-</span></div>
+            <div class="move-detail-row"><span class="move-detail-lbl">Tipo:</span> <span id="move-detail-type"
+                class="move-type-class">-</span></div>
+            <div class="move-detail-row"><span class="move-detail-lbl">Poder:</span> <span
+                id="move-detail-power">-</span></div>
+            <div class="move-detail-row"><span class="move-detail-lbl">Precisão:</span> <span
+                id="move-detail-accuracy">-</span></div>
+            <div class="move-detail-row"><span class="move-detail-lbl">PP:</span> <span id="move-detail-pp">-</span>
+            </div>
+          </div>
+          <div class="move-description-pane">
+            <span class="move-detail-lbl">Descrição:</span>
+            <p id="move-detail-desc">-</p>
+          </div>
+        </div>
+        <div class="retro-modal-footer">
+          <button id="btn-move-modal-close" class="retro-btn">FECHAR</button>
+        </div>
+      </div>
+    </div>
+
   </div>
+  <script src="renderer.js"></script>
 </body>
+
 </html>
