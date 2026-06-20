@@ -43,6 +43,12 @@ const selectedCountSpan = document.getElementById('selected-count');
 const btnGenerate = document.getElementById('btn-generate');
 const alertContainer = document.getElementById('alert-container');
 
+// AI Chat elements
+const aiProviderSelect = document.getElementById('ai-provider-select');
+const chatMessagesDiv = document.getElementById('chat-messages');
+const chatInput = document.getElementById('chat-input');
+const btnChatSend = document.getElementById('btn-chat-send');
+
 // Trio Containers
 const primaryStrategyBadge = document.getElementById('primary-strategy-badge');
 const complementaryStrategyBadge = document.getElementById('complementary-strategy-badge');
@@ -511,3 +517,97 @@ window.addEventListener('click', (e) => {
     detailModal.style.display = 'none';
   }
 });
+
+// --- AI Chat Event Listeners & Functions ---
+
+btnChatSend.addEventListener('click', () => sendChatMessage());
+
+chatInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    sendChatMessage();
+  }
+});
+
+async function sendChatMessage() {
+  const query = chatInput.value.trim();
+  if (!query) return;
+
+  const provider = aiProviderSelect.value;
+  
+  // Clear input
+  chatInput.value = '';
+
+  // Append user message bubble
+  appendChatBubble(query, 'user');
+
+  // Show typing indicator
+  const typingBubble = appendTypingIndicator();
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: query,
+        provider: provider,
+        current_team: selectedPokemon
+      })
+    });
+
+    const data = await response.json();
+    
+    // Remove typing indicator
+    typingBubble.remove();
+
+    if (response.ok) {
+      // Append AI response
+      appendChatBubble(data.response, 'assistant');
+      
+      // If AI updated/generated team, automatically render it
+      if (data.team_data) {
+        if (data.team_data.team) {
+          // If the AI updated the locked team members, update our selectedPokemon state
+          selectedPokemon = data.team_data.team
+            .filter(m => m.source === 'user')
+            .map(m => m.name);
+          renderSelectedList();
+        }
+        renderGeneratedTeam(data.team_data);
+      }
+    } else {
+      appendChatBubble(data.error || 'Desculpe, ocorreu um erro ao processar a mensagem.', 'assistant');
+    }
+  } catch (error) {
+    typingBubble.remove();
+    appendChatBubble(`Erro de conexão: ${error.message}. Certifique-se de que a API local está rodando e a chave de API da IA está configurada no arquivo .env.`, 'assistant');
+  }
+}
+
+function appendChatBubble(text, role) {
+  const bubble = document.createElement('div');
+  bubble.className = `chat-bubble ${role}`;
+  // Use simple formatting: break lines and bold items in Em
+  bubble.innerHTML = text.replace(/\n/g, '<br>');
+  chatMessagesDiv.appendChild(bubble);
+  
+  // Scroll to bottom
+  chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
+  return bubble;
+}
+
+function appendTypingIndicator() {
+  const bubble = document.createElement('div');
+  bubble.className = 'chat-bubble assistant';
+  bubble.innerHTML = `
+    <div class="typing-dots">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>
+  `;
+  chatMessagesDiv.appendChild(bubble);
+  chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
+  return bubble;
+}

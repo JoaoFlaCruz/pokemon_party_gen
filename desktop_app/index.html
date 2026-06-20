@@ -115,6 +115,44 @@
         </div>
       </div>
     </main>
+
+    <!-- AI Chat Panel (Right Sidebar) -->
+    <aside class="ai-chat-panel" id="ai-chat-panel">
+      <div class="chat-header">
+        <div class="chat-header-title">
+          <h2>Assistente de IA</h2>
+          <span class="pulse-indicator"></span>
+        </div>
+        <div class="model-selector">
+          <select id="ai-provider-select" title="Selecione o provedor de IA">
+            <option value="gemini" selected>Gemini 2.5 Flash</option>
+            <option value="openai">OpenAI GPT-4o-mini</option>
+            <option value="anthropic">Claude 3.5 Sonnet</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Scrollable Message Log -->
+      <div class="chat-messages" id="chat-messages">
+        <div class="chat-bubble assistant">
+          Olá! Sou seu assistente de estratégia Pokémon. Você pode me pedir coisas como:
+          <br><br>
+          <em>"Monte um time forte contra fogo com Pikachu como ace."</em>
+          <br>
+          <em>"Quais os melhores pokémons do tipo água?"</em>
+        </div>
+      </div>
+
+      <!-- Chat input -->
+      <div class="chat-input-row">
+        <input type="text" id="chat-input" placeholder="Digite uma mensagem..." autocomplete="off">
+        <button id="btn-chat-send" class="btn-chat-send">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+          </svg>
+        </button>
+      </div>
+    </aside>
   </div>
 
   <!-- Detail Modal -->

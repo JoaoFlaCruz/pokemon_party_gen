@@ -11,6 +11,7 @@ from mcp_server.src.application.use_cases.build_team import build_pokemon_team
 from mcp_server.src.application.use_cases.rank_pokemon import rank_pokemon
 from mcp_server.src.application.use_cases.rank_moveset import rank_pokemon_moveset
 from mcp_server.src.infrastructure.pokeapi import PokemonFetcher, TypeRelationsFetcher
+from mcp_server.src.application.ai_agent import run_agent_loop
 
 
 class PokemonApiHandler(BaseHTTPRequestHandler):
@@ -109,6 +110,28 @@ class PokemonApiHandler(BaseHTTPRequestHandler):
                     primary_strategy=primary_strategy,
                     complementary_strategy=complementary_strategy,
                     aces=aces
+                )
+                self.write_json_response(200, result)
+            elif path == "/api/chat":
+                content_length = int(self.headers.get("Content-Length", 0))
+                if content_length == 0:
+                    body = {}
+                else:
+                    body_bytes = self.rfile.read(content_length)
+                    body = json.loads(body_bytes.decode("utf-8"))
+
+                message = body.get("message")
+                provider = body.get("provider", "gemini")
+                current_team = body.get("current_team")
+
+                if not message:
+                    self.write_json_response(400, {"error": "Corpo da requisição deve conter o campo 'message'."})
+                    return
+
+                result = run_agent_loop(
+                    message=message,
+                    provider=provider,
+                    current_team=current_team
                 )
                 self.write_json_response(200, result)
             else:
