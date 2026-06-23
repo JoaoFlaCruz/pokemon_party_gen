@@ -18,17 +18,23 @@
   the iteration process.
 -->
 
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]
+**Language/Version**: [e.g., Python 3.11, Electron/Node version, or NEEDS CLARIFICATION]
 
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]
+**Primary Dependencies**: [e.g., Electron, Python HTTP/FastAPI-compatible BFF, PokeAPI client, or NEEDS CLARIFICATION]
 
 **Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
 
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]
+**Testing**: [unit, contract, integration, Electron/UI tests, manual PokeAPI checks if applicable, or NEEDS CLARIFICATION]
 
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
+**Target Platform**: [e.g., desktop Electron app, local Python BFF/API, MCP stdio server, or NEEDS CLARIFICATION]
 
-**Project Type**: [e.g., library/cli/web-service/mobile-app/compiler/desktop-app or NEEDS CLARIFICATION]
+**Project Type**: [desktop-app + Python BFF/API + MCP tools, backend-only, docs-only, or NEEDS CLARIFICATION]
+
+**Affected Layers**: [Electron UI, Python BFF/API, application use cases, infrastructure/PokeAPI adapters, MCP tools, docs, or N/A]
+
+**Public Contracts**: [routes, MCP schemas, CLI args, JSON responses, data adapters changed, or N/A]
+
+**Data Sources**: [local PokeAPI-compatible API, injected fakes, static fixtures, SQLite, or N/A]
 
 **Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]
 
@@ -40,7 +46,12 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- **Layered Architecture**: Affected layers are identified and no cross-layer bypass is introduced.
+- **Contract-First Boundaries**: Route/tool/CLI/adapter input and output contracts are specified before implementation.
+- **TDD Plan**: Failing tests to write first are listed, including unit tests and contract/integration tests for public boundaries.
+- **Documentation Plan**: README, docs, quickstart, architecture, or team-flow updates are identified, or N/A is justified.
+- **Data Fidelity**: Pokemon facts come from project tools, injected fakes, or a PokeAPI-compatible source; missing data produces diagnostics.
+- **Manual Checks**: Any local PokeAPI or Electron manual validation is listed separately from automated tests.
 
 ## Project Structure
 
@@ -77,7 +88,24 @@ tests/
 ├── integration/
 └── unit/
 
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
+# [REMOVE IF UNUSED] Option 2: Desktop + Python BFF/API
+desktop_app/
+├── main.js
+├── renderer.js
+├── styles.css
+└── tests/
+
+mcp_server/
+├── src/
+│   ├── application/
+│   │   ├── api_server.py
+│   │   └── use_cases/
+│   ├── infrastructure/
+│   │   └── pokeapi/
+│   └── mcp/
+└── tests/
+
+# [REMOVE IF UNUSED] Option 3: Web application (when browser frontend + backend detected)
 backend/
 ├── src/
 │   ├── models/
@@ -92,7 +120,7 @@ frontend/
 │   └── services/
 └── tests/
 
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
+# [REMOVE IF UNUSED] Option 4: Mobile + API (when "iOS/Android" detected)
 api/
 └── [same as backend above]
 

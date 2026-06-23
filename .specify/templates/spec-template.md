@@ -77,6 +77,9 @@
 
 - What happens when [boundary condition]?
 - How does system handle [error scenario]?
+- What diagnostics are returned when required PokeAPI-compatible data is missing,
+  incomplete, or unavailable?
+- What happens when Electron and the Python BFF/API contract versions disagree?
 
 ## Requirements *(mandatory)*
 
@@ -102,6 +105,24 @@
 
 - **[Entity 1]**: [What it represents, key attributes without implementation]
 - **[Entity 2]**: [What it represents, relationships to other entities]
+
+### Public Contracts *(mandatory if any boundary changes)*
+
+- **Contract 1**: [Electron-to-BFF route, MCP tool schema, CLI args, or adapter output changed]
+- **Input Validation**: [Required fields, accepted values, and invalid-input behavior]
+- **Response Shape**: [Required JSON fields, diagnostics, and error shape]
+- **Compatibility**: [Backward compatibility expectations or migration note]
+
+### Data Sources & Fidelity *(mandatory if Pokemon data is involved)*
+
+- **Source**: [Project tool, injected fake, configured PokeAPI-compatible source, or N/A]
+- **Facts Required**: [Pokemon identity, stats, moves, abilities, items, legality, membership, or N/A]
+- **Missing Data Behavior**: [Explicit diagnostic or pending state; fabricated Pokemon facts are forbidden]
+
+### Documentation Requirements *(mandatory)*
+
+- **Docs to Update**: [README, docs/architecture.md, team-flow docs, quickstart, or N/A with reason]
+- **Run/Test Notes**: [Commands or manual checks that must be documented]
 
 ## Success Criteria *(mandatory)*
 
