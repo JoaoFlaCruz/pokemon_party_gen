@@ -51,6 +51,7 @@ mcp_server/
                 type_relations_tool.py
                 __init__.py
         application/
+            ai_agent.py
             use_cases/
                 champions_legality.py
                 champions_strategy.py
@@ -145,6 +146,9 @@ Supported variables:
 - `BANNED_POKEMON_DB_PATH`: SQLite database path for Pokemon banned from `rank_pokemon`. Default: `banned_pokemon.sqlite3` in the project root.
 - `POKEAPI_HTTP_PORT`: host HTTP port used by the root `docker-compose.yml` to expose PokeAPI through Nginx. Default: `8000`.
 - `HASURA_HTTP_PORT`: host HTTP port used by the root `docker-compose.yml` to expose Hasura. Default: `8081`.
+- `GEMINI_API_KEY`: API key for Google Gemini models (e.g. `gemini-2.5-flash`).
+- `OPENAI_API_KEY`: API key for OpenAI models (e.g. `gpt-4o-mini`).
+- `ANTHROPIC_API_KEY`: API key for Anthropic Claude models (e.g. `claude-3-5-sonnet-20241022`).
 
 ## Docker Environment
 
@@ -278,13 +282,14 @@ Main unit tests are located in:
 - `mcp_server/tests/application/use_cases/test_rankings.py`: tests ranking rules with fakes, without HTTP.
 - `mcp_server/tests/mcp/tools/test_tools.py`: tests tool schemas, formatting, validation, and basic MCP behavior.
 - `mcp_server/tests/infrastructure/pokeapi/test_fetchers.py`: tests fetcher data assembly without real HTTP.
+- `mcp_server/tests/application/use_cases/test_ai_agent.py`: tests the AI Agent ReAct loop and provider routing with mock API requests.
 
 `mcp_server/tests/manual/test_fetch_calls.py` is a manual check to run only when a local PokeAPI is active and populated.
 
 Recommended unit test command:
 
 ```bash
-python3 -m unittest mcp_server.tests.application.use_cases.test_rankings mcp_server.tests.mcp.tools.test_tools mcp_server.tests.infrastructure.pokeapi.test_fetchers
+python3 -m unittest mcp_server.tests.application.use_cases.test_rankings mcp_server.tests.mcp.tools.test_tools mcp_server.tests.infrastructure.pokeapi.test_fetchers mcp_server.tests.application.use_cases.test_ai_agent
 ```
 
 ## Main Flow
