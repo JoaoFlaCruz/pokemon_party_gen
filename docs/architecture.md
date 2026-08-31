@@ -33,6 +33,7 @@ desktop_app/
             state/
             styles/
             types/
+            utils/
     tests/
         renderer/
 mcp_server/

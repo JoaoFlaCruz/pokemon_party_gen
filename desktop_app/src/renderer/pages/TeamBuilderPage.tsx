@@ -5,10 +5,12 @@ import { teamRepository } from "../services/teamRepository";
 import type { AppAction } from "../state/appState";
 import type { AppState } from "../types/app-state";
 import type { Item, Move, Nature, PokemonDetails, PokemonFilters, PokemonSummary, StatKey } from "../types/domain";
+import { BoxHeader } from "../components/BoxHeader";
 import { ItemSelector } from "../components/ItemSelector";
 import { MoveSelectorGroup } from "../components/MoveSelectorGroup";
 import { NatureSelector } from "../components/NatureSelector";
 import { PartySlotGrid } from "../components/PartySlotGrid";
+import { PokedexEntryBox } from "../components/PokedexEntryBox";
 import { PokemonDetailPanel } from "../components/PokemonDetailPanel";
 import { PokemonSearchPanel } from "../components/PokemonSearchPanel";
 import { SaveTeamControls } from "../components/SaveTeamControls";
@@ -28,6 +30,7 @@ export function TeamBuilderPage({ state, dispatch }: Props) {
   const [items, setItems] = useState<Item[]>([]);
 
   const activeSlot = state.draft.slots.find((slot) => slot.position === state.activeSlotPosition) ?? state.draft.slots[0];
+  const activeItem = items.find((item) => item.id === activeSlot.itemId) ?? null;
 
   useEffect(() => {
     pokemonCatalogService.listPokemon(filters).then((result) => {
@@ -72,32 +75,58 @@ export function TeamBuilderPage({ state, dispatch }: Props) {
 
   return (
     <main className="team-builder">
-      <PokemonDetailPanel details={activeDetails} slot={activeSlot} moves={availableMoves} />
+      {/* Painel Esquerdo: Perfil do Pokémon */}
+      <PokemonDetailPanel
+        details={activeDetails}
+        slot={activeSlot}
+        moves={availableMoves}
+        equippedItem={activeItem}
+        onLevelChange={(level) => dispatch({ type: "setLevel", level })}
+        onGenderChange={(gender) => dispatch({ type: "setGender", gender })}
+      />
+
+      {/* Painel Central: Caixa de Pokémon & Pokédex */}
       <section className="builder-center">
-        <div className="team-header">
-          <label>
-            Nome do time
-            <input value={state.draft.name} onChange={(event) => dispatch({ type: "setTeamName", name: event.target.value })} />
-          </label>
-          <SaveTeamControls onSave={handleSave} />
-        </div>
+        <BoxHeader
+          teamName={state.draft.name}
+          activeTeamIndex={state.activeTeamIndex ?? 1}
+          onNameChange={(name) => dispatch({ type: "setTeamName", name })}
+          onSwitchTeam={(index) => dispatch({ type: "switchTeam", index })}
+        />
+
         <PartySlotGrid
           slots={state.draft.slots}
           activeSlotPosition={state.activeSlotPosition}
           pokemonById={pokemonById}
           onSelect={(position) => dispatch({ type: "selectSlot", position })}
         />
+
+        <PokedexEntryBox details={activeDetails} />
+
         <section className="customization">
-          <NatureSelector natures={natures} value={activeSlot.natureId} onChange={(natureId) => dispatch({ type: "setNature", natureId })} />
-          <ItemSelector items={items} value={activeSlot.itemId} onChange={(itemId) => dispatch({ type: "setItem", itemId })} />
-          <StatPointControls ivPoints={activeSlot.ivPoints} onChange={(stat: StatKey, value) => dispatch({ type: "setIv", stat, value })} />
-          <MoveSelectorGroup availableMoves={availableMoves} selectedMoveIds={activeSlot.moveIds} onMoveChange={(index, moveId) => dispatch({ type: "setMove", index, moveId })} />
+          <div className="panel compact config-panel">
+            <h3>Configuração & IVs</h3>
+            <div className="nature-item-row">
+              <NatureSelector natures={natures} value={activeSlot.natureId} onChange={(natureId) => dispatch({ type: "setNature", natureId })} />
+              <ItemSelector items={items} value={activeSlot.itemId} onChange={(itemId) => dispatch({ type: "setItem", itemId })} />
+            </div>
+            <StatPointControls ivPoints={activeSlot.ivPoints} onChange={(stat: StatKey, value) => dispatch({ type: "setIv", stat, value })} />
+          </div>
+          <div className="customization-right">
+            <MoveSelectorGroup availableMoves={availableMoves} selectedMoveIds={activeSlot.moveIds} onMoveChange={(index, moveId) => dispatch({ type: "setMove", index, moveId })} />
+            <div className="center-actions">
+              <SaveTeamControls onSave={handleSave} />
+            </div>
+          </div>
         </section>
       </section>
+
+      {/* Painel Direito: Gerenciador com Catálogo e Sugestões */}
       <PokemonSearchPanel
         filters={filters}
         results={pokemonList}
         types={allTypes}
+        activeDetails={activeDetails}
         onFiltersChange={setFilters}
         onSelectPokemon={(pokemonId) => dispatch({ type: "assignPokemon", pokemonId })}
       />

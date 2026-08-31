@@ -12,19 +12,50 @@ type Props = {
 export function AppShell({ currentView, diagnostics, onNavigate, children }: Props) {
   return (
     <div className="app-shell">
-      <header className="topbar">
-        <h1>Pokemon Party Generator</h1>
-        <nav aria-label="Primary navigation">
-          <button className={currentView === "team-builder" ? "active" : ""} onClick={() => onNavigate("team-builder")}>
-            Montagem
+      <header className="retro-topbar" aria-label="Barra Superior">
+        <div className="topbar-left">
+          <span className="topbar-tag-data">DADOS</span>
+        </div>
+
+        <nav className="topbar-center" aria-label="Navegação Principal">
+          <button
+            type="button"
+            className={`topbar-btn btn-team ${currentView === "team-builder" ? "active" : ""}`}
+            onClick={() => onNavigate("team-builder")}
+            title="Montagem de Time"
+          >
+            EQUIPE POKEMON
+            <span className="sr-only">Montagem</span>
           </button>
-          <button className={currentView === "saved-teams" ? "active" : ""} onClick={() => onNavigate("saved-teams")}>
-            Times Salvos
+
+          <button
+            type="button"
+            className={`topbar-btn btn-close-box ${currentView === "saved-teams" ? "active" : ""}`}
+            onClick={() => onNavigate("saved-teams")}
+            title="Fechar Caixa e Ver Times Salvos"
+          >
+            FECHAR CAIXA
+            <span className="sr-only">Times Salvos</span>
           </button>
         </nav>
+
+        <div className="topbar-right">
+          <button
+            type="button"
+            className="topbar-btn btn-manager"
+            onClick={() => {
+              if (currentView !== "team-builder") {
+                onNavigate("team-builder");
+              }
+            }}
+          >
+            GERENCIADOR
+          </button>
+        </div>
       </header>
+
       <DiagnosticBanner diagnostics={diagnostics} />
-      {children}
+      <div className="app-main-content">{children}</div>
     </div>
   );
 }
