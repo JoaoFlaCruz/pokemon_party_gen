@@ -40,8 +40,10 @@ export type TeamListPage = {
 export type AppState = {
   currentView: AppView;
   activeSlotPosition: number;
+  activeTeamIndex: number;
   draft: TeamDraft;
   savedTeams: SavedTeam[];
   savedTeamsPage: number;
   diagnostics: Diagnostic[];
 };
+
