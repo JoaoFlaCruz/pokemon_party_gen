@@ -8,7 +8,7 @@
     "build": "npm run build:main && npm run build:renderer",
     "build:main": "tsc -p tsconfig.main.json",
     "build:renderer": "vite build",
-    "start": "npm run build && electron . --no-sandbox --disable-gpu",
+    "start": "npm run build && env -u ELECTRON_RUN_AS_NODE electron . --no-sandbox --disable-gpu",
     "test": "vitest run",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.main.json --noEmit"
   },
@@ -25,7 +25,7 @@
     "@types/node": "^24.10.2",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
-    "electron": "^42.4.0",
+    "electron": "^34.5.8",
     "jsdom": "^27.3.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.15"

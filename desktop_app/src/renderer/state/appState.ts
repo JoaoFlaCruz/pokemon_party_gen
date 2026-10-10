@@ -7,6 +7,9 @@ export type AppAction =
   | { type: "selectSlot"; position: number }
   | { type: "setTeamName"; name: string }
   | { type: "assignPokemon"; pokemonId: number }
+  | { type: "setLevel"; level: number }
+  | { type: "setGender"; gender: "male" | "female" | "unknown" }
+  | { type: "switchTeam"; index: number }
   | { type: "setNature"; natureId: string }
   | { type: "setItem"; itemId: string }
   | { type: "setIv"; stat: StatKey; value: number }
@@ -19,6 +22,7 @@ export function createInitialState(): AppState {
   return {
     currentView: "team-builder",
     activeSlotPosition: 1,
+    activeTeamIndex: 1,
     draft: createDefaultDraft(),
     savedTeams: savedTeams,
     savedTeamsPage: 1,
@@ -67,6 +71,33 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         })),
         diagnostics: []
       };
+    case "setLevel":
+      return {
+        ...state,
+        draft: updateActiveSlot(state.draft, state.activeSlotPosition, (slot) => ({
+          ...slot,
+          level: Math.max(1, Math.min(100, action.level))
+        }))
+      };
+    case "setGender":
+      return {
+        ...state,
+        draft: updateActiveSlot(state.draft, state.activeSlotPosition, (slot) => ({
+          ...slot,
+          gender: action.gender
+        }))
+      };
+    case "switchTeam": {
+      const nextIndex = Math.max(1, Math.min(10, action.index));
+      return {
+        ...state,
+        activeTeamIndex: nextIndex,
+        draft: {
+          ...state.draft,
+          name: `Time ${nextIndex}`
+        }
+      };
+    }
     case "setNature":
       return { ...state, draft: updateActiveSlot(state.draft, state.activeSlotPosition, (slot) => ({ ...slot, natureId: action.natureId })) };
     case "setItem":
